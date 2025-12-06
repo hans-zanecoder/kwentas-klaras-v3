@@ -23,6 +23,7 @@
     "@nuxt/ui": "^4.2.1",
     "@prisma/client": "^6.19.0",
     "@unhead/vue": "^2.0.19",
+    "apexcharts": "^5.3.6",
     "better-sqlite3": "^12.5.0",
     "eslint": "^9.39.1",
     "firebase": "^12.6.0",
@@ -33,7 +34,8 @@
     "prisma": "^6.19.0",
     "typescript": "^5.9.3",
     "vue": "^3.5.25",
-    "vue-router": "^4.6.3"
+    "vue-router": "^4.6.3",
+    "vue3-apexcharts": "^1.10.0"
   },
   "devDependencies": {
     "@types/mongoose": "^5.11.97",

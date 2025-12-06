@@ -1,15 +1,20 @@
 <template>
-  <div class="flex items-start space-x-4" :class="isLast ? '' : 'pb-4 border-b border-gray-100'">
-    <div v-if="icon" :class="`w-10 h-10 ${iconBgClasses} rounded-full flex items-center justify-center flex-shrink-0`">
-      <div v-html="icon" :class="`w-5 h-5 ${iconColorClasses}`"></div>
+  <div class="flex items-start gap-3 relative">
+    <div class="relative z-10 flex-shrink-0">
+      <div v-if="icon" class="w-4 h-4 rounded-full flex items-center justify-center">
+        <span class="text-xs">{{ icon }}</span>
     </div>
-    <div v-else-if="$slots.icon" :class="`w-10 h-10 ${iconBgClasses} rounded-full flex items-center justify-center flex-shrink-0`">
+      <div v-else-if="$slots.icon" class="w-4 h-4 rounded-full flex items-center justify-center">
       <slot name="icon" />
+      </div>
+      <div v-else class="w-4 h-4 rounded-full flex items-center justify-center">
+        <span class="text-xs">📋</span>
+      </div>
     </div>
-    <div class="flex-1">
-      <p class="text-sm font-medium text-gray-900">{{ title }}</p>
-      <p class="text-xs text-gray-500">{{ description }}</p>
-      <p class="text-xs text-gray-400 mt-1">{{ time }}</p>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm text-gray-900 font-medium leading-relaxed">{{ title }}</p>
+      <p class="text-xs text-gray-500 mt-1">{{ description }}</p>
+      <p class="text-xs text-gray-500 mt-1">{{ time }}</p>
     </div>
   </div>
 </template>
