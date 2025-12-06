@@ -1,29 +1,21 @@
 import { connectToMongoDB } from '../../lib/mongodb'
 import User from '../../models/User'
-import { UserDepartment } from '../../../app/types/userDepartment'
-
-interface UpdateUserRequest {
-  firstName?: string
-  lastName?: string
-  username?: string
-  email?: string
-  department?: UserDepartment
-  status?: 'Active' | 'Inactive'
-}
+import type { UpdateUserRequest } from '../../types/user/updateUserRequest'
+import { withErrorHandler } from '../../utils/errorHandler'
 
 export default defineEventHandler(async (event) => {
-  try {
-    const id = getRouterParam(event, 'id')
+  const id = getRouterParam(event, 'id')
 
-    if (!id) {
-      throw createError({
-        statusCode: 400,
-        message: 'User ID is required'
-      })
-    }
+  if (!id) {
+    throw createError({
+      statusCode: 400,
+      message: 'User ID is required'
+    })
+  }
 
-    const body = await readBody<UpdateUserRequest>(event)
+  const body = await readBody<UpdateUserRequest>(event)
 
+  return await withErrorHandler(async () => {
     await connectToMongoDB()
 
     const user = await User.findById(id)
@@ -83,31 +75,9 @@ export default defineEventHandler(async (event) => {
         joined: user.joined ? new Date(user.joined).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined,
       }
     }
-  } catch (error: any) {
-    if (error.statusCode) {
-      throw error
-    }
-
-    if (error.name === 'CastError') {
-      throw createError({
-        statusCode: 400,
-        message: 'Invalid user ID format'
-      })
-    }
-
-    if (error.code === 11000) {
-      throw createError({
-        statusCode: 409,
-        message: 'User with this email or username already exists'
-      })
-    }
-
-    console.error('Error updating user:', error)
-    throw createError({
-      statusCode: 500,
-      message: 'Failed to update user',
-      data: error.message
-    })
-  }
+  }, {
+    defaultStatusCode: 500,
+    defaultMessage: 'Failed to update user'
+  })
 })
 

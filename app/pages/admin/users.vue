@@ -159,7 +159,8 @@
 </template>
 
 <script setup lang="ts">
-import { useUserStore, type User } from '~/stores/userStore'
+import { useUserStore } from '~/stores/userStore'
+import type { User } from '~/types/user/user'
 
 interface UserWithPassword extends User {
   password?: string

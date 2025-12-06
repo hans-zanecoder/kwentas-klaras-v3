@@ -1,20 +1,11 @@
 import mongoose, { Schema, Document, Model } from 'mongoose'
-import { UserDepartment, USER_DEPARTMENTS } from '../../app/types/userDepartment'
-import { UserService, USER_SERVICES } from '../../app/types/userServices'
+import { USER_DEPARTMENTS } from '../../app/constants/user/userDepartments'
+import { USER_SERVICES } from '../../app/constants/user/userServices'
+import type { IProject } from '../types/project/project'
 
-export interface IProject extends Document {
-  name: string
-  implementingUnit: UserDepartment
-  appropriation: number
-  startDate: Date
-  endDate: Date
-  year: number
-  services: UserService
-  createdAt: Date
-  updatedAt: Date
-}
+interface IProjectDocument extends IProject, Document {}
 
-const ProjectSchema: Schema = new Schema<IProject>(
+const ProjectSchema: Schema = new Schema<IProjectDocument>(
   {
     name: {
       type: String,
@@ -39,7 +30,7 @@ const ProjectSchema: Schema = new Schema<IProject>(
       type: Date,
       required: true,
       validate: {
-        validator: function (this: IProject, value: Date) {
+        validator: function (this: IProjectDocument, value: Date) {
           return value >= this.startDate
         },
         message: 'End date must be after or equal to start date',
@@ -68,7 +59,7 @@ ProjectSchema.index({ year: 1 })
 ProjectSchema.index({ startDate: 1 })
 ProjectSchema.index({ endDate: 1 })
 
-const Project: Model<IProject> = mongoose.models.Project || mongoose.model<IProject>('Project', ProjectSchema)
+const Project: Model<IProjectDocument> = mongoose.models.Project || mongoose.model<IProjectDocument>('Project', ProjectSchema)
 
 export default Project
 

@@ -163,8 +163,10 @@
 </template>
 
 <script setup lang="ts">
-import { USER_DEPARTMENTS, type UserDepartment } from '../../types/userDepartment'
-import { USER_SERVICES, type UserService } from '../../types/userServices'
+import { USER_DEPARTMENTS } from '~/constants/user/userDepartments'
+import { USER_SERVICES } from '~/constants/user/userServices'
+import type { UserDepartment } from '~/types/user/userDepartment'
+import type { UserService } from '~/types/user/userServices'
 
 interface Project {
   id?: string

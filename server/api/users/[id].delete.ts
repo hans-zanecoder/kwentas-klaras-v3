@@ -1,18 +1,19 @@
 import { connectToMongoDB } from '../../lib/mongodb'
 import { getFirebaseAuth } from '../../lib/firebase'
 import User from '../../models/User'
+import { withErrorHandler } from '../../utils/errorHandler'
 
 export default defineEventHandler(async (event) => {
-  try {
-    const id = getRouterParam(event, 'id')
+  const id = getRouterParam(event, 'id')
 
-    if (!id) {
-      throw createError({
-        statusCode: 400,
-        message: 'User ID is required'
-      })
-    }
+  if (!id) {
+    throw createError({
+      statusCode: 400,
+      message: 'User ID is required'
+    })
+  }
 
+  return await withErrorHandler(async () => {
     await connectToMongoDB()
 
     const user = await User.findById(id)
@@ -26,18 +27,19 @@ export default defineEventHandler(async (event) => {
 
     const firebaseId = user.firebaseId
 
-    try {
+    await withErrorHandler(async () => {
       const firebaseAuth = getFirebaseAuth()
       await firebaseAuth.deleteUser(firebaseId)
-    } catch (firebaseError: any) {
-      if (firebaseError.code !== 'auth/user-not-found') {
-        console.error('Error deleting user from Firebase:', firebaseError)
-        throw createError({
-          statusCode: 500,
-          message: 'Failed to delete user from Firebase'
-        })
+    }, {
+      defaultStatusCode: 500,
+      defaultMessage: 'Failed to delete user from Firebase',
+      logError: true
+    }).catch((firebaseError: any) => {
+      if (firebaseError.statusCode === 404 || firebaseError.code === 'auth/user-not-found') {
+        return
       }
-    }
+      throw firebaseError
+    })
 
     await User.findByIdAndDelete(id)
 
@@ -45,24 +47,9 @@ export default defineEventHandler(async (event) => {
       success: true,
       message: 'User deleted successfully'
     }
-  } catch (error: any) {
-    if (error.statusCode) {
-      throw error
-    }
-
-    if (error.name === 'CastError') {
-      throw createError({
-        statusCode: 400,
-        message: 'Invalid user ID format'
-      })
-    }
-
-    console.error('Error deleting user:', error)
-    throw createError({
-      statusCode: 500,
-      message: 'Failed to delete user',
-      data: error.message
-    })
-  }
+  }, {
+    defaultStatusCode: 500,
+    defaultMessage: 'Failed to delete user'
+  })
 })
 

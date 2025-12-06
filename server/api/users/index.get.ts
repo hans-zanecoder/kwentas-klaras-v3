@@ -1,8 +1,9 @@
 import { connectToMongoDB } from '../../lib/mongodb'
 import User from '../../models/User'
+import { withErrorHandler } from '../../utils/errorHandler'
 
 export default defineEventHandler(async (event) => {
-  try {
+  return await withErrorHandler(async () => {
     await connectToMongoDB()
 
     const users = await User.find({})
@@ -25,13 +26,9 @@ export default defineEventHandler(async (event) => {
       success: true,
       users: formattedUsers,
     }
-  } catch (error: any) {
-    console.error('Error fetching users:', error)
-    throw createError({
-      statusCode: 500,
-      message: 'Failed to fetch users',
-      data: error.message
-    })
-  }
+  }, {
+    defaultStatusCode: 500,
+    defaultMessage: 'Failed to fetch users'
+  })
 })
 

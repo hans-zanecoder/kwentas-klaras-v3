@@ -1,4 +1,5 @@
 import { getFirebaseAuth } from '../../lib/firebase'
+import { withErrorHandler } from '../../utils/errorHandler'
 
 export default defineEventHandler(async (event) => {
   const { idToken } = await readBody(event)
@@ -10,7 +11,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  try {
+  return await withErrorHandler(async () => {
     const firebaseAuth = getFirebaseAuth()
     const decodedToken = await firebaseAuth.verifyIdToken(idToken)
 
@@ -29,10 +30,8 @@ export default defineEventHandler(async (event) => {
         email: decodedToken.email,
       }
     }
-  } catch (error: any) {
-    throw createError({
-      statusCode: 401,
-      message: 'Invalid ID token'
-    })
-  }
+  }, {
+    defaultStatusCode: 401,
+    defaultMessage: 'Invalid ID token'
+  })
 })

@@ -1,44 +1,35 @@
 import { getFirebaseAuth } from '../../lib/firebase'
 import { connectToMongoDB } from '../../lib/mongodb'
 import User from '../../models/User'
-import { UserDepartment } from '../../../app/types/userDepartment'
-
-interface CreateUserRequest {
-  firstName: string
-  lastName: string
-  username: string
-  email: string
-  password: string
-  department: UserDepartment
-  status?: 'Active' | 'Inactive'
-}
+import type { CreateUserRequest } from '../../types/user/createUserRequest'
+import { withErrorHandler } from '../../utils/errorHandler'
 
 export default defineEventHandler(async (event) => {
-  try {
-    const body = await readBody<CreateUserRequest>(event)
+  const body = await readBody<CreateUserRequest>(event)
 
-    if (!body.firstName || !body.lastName || !body.username || !body.email || !body.password || !body.department) {
-      throw createError({
-        statusCode: 400,
-        message: 'Missing required fields: firstName, lastName, username, email, password, department'
-      })
-    }
+  if (!body.firstName || !body.lastName || !body.username || !body.email || !body.password || !body.department) {
+    throw createError({
+      statusCode: 400,
+      message: 'Missing required fields: firstName, lastName, username, email, password, department'
+    })
+  }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(body.email)) {
-      throw createError({
-        statusCode: 400,
-        message: 'Invalid email format'
-      })
-    }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(body.email)) {
+    throw createError({
+      statusCode: 400,
+      message: 'Invalid email format'
+    })
+  }
 
-    if (body.password.length < 6) {
-      throw createError({
-        statusCode: 400,
-        message: 'Password must be at least 6 characters long'
-      })
-    }
+  if (body.password.length < 6) {
+    throw createError({
+      statusCode: 400,
+      message: 'Password must be at least 6 characters long'
+    })
+  }
 
+  return await withErrorHandler(async () => {
     await connectToMongoDB()
 
     const existingUser = await User.findOne({
@@ -95,45 +86,9 @@ export default defineEventHandler(async (event) => {
         joined: user.joined ? new Date(user.joined).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined,
       }
     }
-  } catch (error: any) {
-    if (error.statusCode) {
-      throw error
-    }
-
-    if (error.code === 'auth/email-already-exists') {
-      throw createError({
-        statusCode: 409,
-        message: 'User with this email already exists in Firebase'
-      })
-    }
-
-    if (error.code === 'auth/invalid-email') {
-      throw createError({
-        statusCode: 400,
-        message: 'Invalid email address'
-      })
-    }
-
-    if (error.code === 'auth/weak-password') {
-      throw createError({
-        statusCode: 400,
-        message: 'Password is too weak'
-      })
-    }
-
-    if (error.code === 11000) {
-      throw createError({
-        statusCode: 409,
-        message: 'User with this email or username already exists'
-      })
-    }
-
-    console.error('Error creating user:', error)
-    throw createError({
-      statusCode: 500,
-      message: 'Failed to create user',
-      data: error.message
-    })
-  }
+  }, {
+    defaultStatusCode: 500,
+    defaultMessage: 'Failed to create user'
+  })
 })
 

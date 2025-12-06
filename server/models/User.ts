@@ -1,26 +1,15 @@
 import mongoose, { Schema, Document, Model } from 'mongoose'
-import { UserDepartment, USER_DEPARTMENTS } from '../../app/types/userDepartment'
+import { USER_DEPARTMENTS } from '../../app/constants/user/userDepartments'
+import type { IUser } from '../types/user/user'
 
-export interface IUser extends Document {
-  firebaseId: string
-  firstName: string
-  lastName: string
-  username: string
-  email: string
-  department: UserDepartment
-  status: 'Active' | 'Inactive'
-  joined: Date
-  createdAt: Date
-  updatedAt: Date
-}
+interface IUserDocument extends IUser, Document {}
 
-const UserSchema: Schema = new Schema<IUser>(
+const UserSchema: Schema = new Schema<IUserDocument>(
   {
     firebaseId: {
       type: String,
       required: true,
       unique: true,
-      index: true,
     },
     firstName: {
       type: String,
@@ -35,8 +24,8 @@ const UserSchema: Schema = new Schema<IUser>(
     username: {
       type: String,
       required: true,
+      unique: true,
       trim: true,
-      index: true,
     },
     email: {
       type: String,
@@ -44,7 +33,6 @@ const UserSchema: Schema = new Schema<IUser>(
       unique: true,
       lowercase: true,
       trim: true,
-      index: true,
     },
     department: {
       type: String,
@@ -67,11 +55,8 @@ const UserSchema: Schema = new Schema<IUser>(
   }
 )
 
-UserSchema.index({ firebaseId: 1 })
-UserSchema.index({ email: 1 })
-UserSchema.index({ username: 1 })
 
-const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema)
+const User: Model<IUserDocument> = mongoose.models.User || mongoose.model<IUserDocument>('User', UserSchema)
 
 export default User
 

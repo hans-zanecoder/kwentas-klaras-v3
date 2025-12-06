@@ -1,14 +1,4 @@
-export interface User {
-  id?: string
-  firebaseId?: string
-  firstName: string
-  lastName: string
-  username: string
-  email: string
-  department: string
-  status: 'Active' | 'Inactive'
-  joined?: string | Date
-}
+import type { User } from '~/types/user/user'
 
 export const useUserStore = () => {
   const users = ref<User[]>([])

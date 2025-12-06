@@ -160,8 +160,9 @@
 </template>
 
 <script setup lang="ts">
-import { USER_DEPARTMENTS, type UserDepartment } from '../../types/userDepartment'
-import type { User } from '../../stores/userStore'
+import { USER_DEPARTMENTS } from '~/constants/user/userDepartments'
+import type { UserDepartment } from '~/types/user/userDepartment'
+import type { User } from '../../types/user/user'
 
 interface UserWithPassword extends User {
   password?: string
