@@ -3,63 +3,26 @@
     <AdminSidebar />
     
     <main class="flex-1 flex flex-col overflow-hidden">
-      <AdminHeader title="Dashboard" subtitle="Welcome back, Admin" />
-      
       <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-brand-bg">
         <div class="space-y-8 min-h-screen">
-          <section class="relative overflow-hidden rounded-2xl border border-gray-300 p-0 mb-4 animate-fade-in">
-            <div class="absolute inset-0 bg-white"></div>
-            <div class="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-0 items-stretch">
-              <div class="col-span-2 flex flex-col justify-center px-4 lg:px-6 py-4 lg:py-6 md:py-8">
-                <h1 class="text-xl lg:text-2xl md:text-3xl font-extrabold text-brand-blue mb-2 lg:mb-3 tracking-tight text-left">
-                  Welcome back, Admin!
-                </h1>
-                <p class="text-sm text-brand-green mb-4 lg:mb-5 max-w-2xl font-normal leading-relaxed text-left">
-                  Here's what's happening with your platform today.
-                </p>
-                <button
-                  type="button"
-                  @click="navigateTo('/admin/projects')"
-                  style="background-color: #2563EB;"
-                  class="mt-2 flex items-center justify-center gap-2 py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white hover:[background-color:#22C98D] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 w-fit"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span>New Project</span>
-                </button>
-              </div>
-              <div v-if="stats.length > 0" class="flex flex-col gap-0 justify-center px-6 py-6 md:py-8 bg-gradient-to-br from-[#ede9fe] via-[#f3e8ff] to-[#e0e7ff] rounded-2xl md:rounded-l-none md:rounded-r-2xl">
-                <div class="flex flex-col gap-0 divide-y divide-[#e0e7ff]">
-                  <div v-for="(stat, index) in stats.slice(0, 2)" :key="index" class="flex items-center gap-4 py-4">
-                    <div class="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm">
-                      <svg v-if="index === 0" :class="`w-5 h-5 ${getStatIconColor(stat.color)}`" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                      </svg>
-                      <svg v-else :class="`w-5 h-5 ${getStatIconColor(stat.color)}`" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div class="text-xl font-bold text-gray-900 flex items-center gap-2">
-                        {{ stat.value }}
-                      </div>
-                      <div class="flex items-center gap-1 mt-0.5">
-                        <span :class="['text-xs font-semibold', stat.changeType === 'positive' ? 'text-brand-green' : stat.changeType === 'negative' ? 'text-red-600' : 'text-gray-500']">
-                          <span v-if="stat.changeType === 'positive'">▲</span>
-                          <span v-else-if="stat.changeType === 'negative'">▼</span>
-                          <span v-else>-</span>
-                          {{ stat.change }}
-                        </span>
-                        <span class="text-xs text-gray-400 ml-1">from last month</span>
-                      </div>
-                      <div class="text-gray-500 text-xs font-medium">{{ stat.title }}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
+          <PageHeader
+            :title="PAGE_HEADERS.dashboard.title"
+            :description="PAGE_HEADERS.dashboard.description"
+            :button-text="PAGE_HEADERS.dashboard.buttonText"
+            :button-action="() => navigateTo('/admin/projects')"
+            :stats="headerStats"
+          >
+            <template #icon-0="{ stat }">
+              <svg :class="`w-5 h-5 ${getStatIconColor(stat.color)}`" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </template>
+            <template #icon-1="{ stat }">
+              <svg :class="`w-5 h-5 ${getStatIconColor(stat.color)}`" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </template>
+          </PageHeader>
 
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-8">
             <StatCard
@@ -109,8 +72,10 @@
 
 <script setup lang="ts">
 import StatCard from '~/components/ui/StatCard.vue'
+import PageHeader from '~/components/ui/PageHeader.vue'
 import ActivityFeed from '~/components/ui/ActivityFeed.vue'
 import PieChart from '~/components/ui/PieChart.vue'
+import { PAGE_HEADERS } from '~/constants/pages/headers'
 import { getStatIconColor, getIconBgColor } from '~/constants/ui/statColors'
 import { useDashboard } from '~/composables/dashboard/useDashboard'
 import { useUtilizationRate } from '~/composables/dashboard/useUtilizationRate'
@@ -153,5 +118,11 @@ const stats = [
   }
 ]
 
+const headerStats = computed(() => {
+  return stats.slice(0, 2).map((stat, index) => ({
+    ...stat,
+    iconIndex: index
+  }))
+})
 </script>
 

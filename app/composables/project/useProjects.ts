@@ -1,4 +1,5 @@
 import type { Project } from '~/types/project/project'
+import { calculateProjectStats } from '~/constants/project/projectStats'
 import { useErrorHandler } from '../error/useErrorHandler'
 
 export const useProjects = () => {
@@ -127,11 +128,21 @@ export const useProjects = () => {
     })
   }
 
+  const projectStats = computed(() => {
+    const totalProjects = projects.value.length
+    const totalAppropriation = projects.value.reduce((sum, p) => sum + (p.appropriation || 0), 0)
+    const uniqueYears = new Set(projects.value.map(p => p.year)).size
+    const uniqueUnits = new Set(projects.value.map(p => p.implementingUnit)).size
+
+    return calculateProjectStats(totalProjects, totalAppropriation, uniqueYears, uniqueUnits)
+  })
+
   return {
     projects: readonly(projects),
     loading: readonly(loading),
     error: readonly(error),
     saveError,
+    projectStats,
     fetchProjects,
     createProject,
     updateProject,

@@ -25,17 +25,26 @@ model User {
   @@map("users")
 }
 
+model Service {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  name      String    @unique
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("services")
+}
+
 model Project {
-  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
   name             String
-  implementingUnit String   @map("implementing_unit")
+  implementingUnit String?   @map("implementing_unit")
   appropriation    Float
-  startDate        DateTime @map("start_date")
-  endDate          DateTime @map("end_date")
+  startDate        DateTime? @map("start_date")
+  endDate          DateTime? @map("end_date")
   year             Int
   services         String
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  createdAt        DateTime? @default(now()) @map("created_at")
+  updatedAt        DateTime? @updatedAt @map("updated_at")
 
   @@index([name])
   @@index([implementingUnit])

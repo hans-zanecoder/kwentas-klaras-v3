@@ -1,17 +1,17 @@
 <template>
-  <div class="bg-white rounded-xl shadow-sm border border-gray-300 animate-fade-in p-6">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-sm font-medium text-gray-500">{{ title }}</h3>
-      <div v-if="icon" :class="`p-3 ${iconBgClasses} rounded-lg`">
-        <div v-html="icon" :class="`w-6 h-6 ${iconColorClasses}`"></div>
+  <div class="bg-white rounded-xl shadow-sm border border-gray-300 animate-fade-in p-3">
+    <div class="flex items-center justify-between mb-1.5">
+      <h3 class="text-xs font-medium text-gray-500">{{ title }}</h3>
+      <div v-if="icon" :class="`p-1.5 ${iconBgClasses} rounded-lg`">
+        <div v-html="icon" :class="`w-4 h-4 ${iconColorClasses}`"></div>
       </div>
-      <div v-else-if="$slots.icon" :class="`p-3 ${iconBgClasses} rounded-lg`">
+      <div v-else-if="$slots.icon" :class="`p-1.5 ${iconBgClasses} rounded-lg`">
         <slot name="icon" />
       </div>
     </div>
-    <p class="text-3xl font-bold text-gray-900">{{ value }}</p>
+    <p class="text-xl font-bold text-gray-900 mb-0.5">{{ value }}</p>
     <p v-if="change" :class="changeClasses">
-      <span class="font-medium">{{ change }}</span>
+      <span class="text-xs font-medium">{{ change }}</span>
     </p>
     <slot name="footer" />
   </div>
