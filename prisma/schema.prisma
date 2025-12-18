@@ -85,3 +85,17 @@ model Project {
   @@map("projects")
 }
 
+model ProjectActivity {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  projectId   String    @map("project_id") @db.ObjectId
+  action      String
+  description String
+  userId      String?   @map("user_id") @db.ObjectId
+  metadata    String?
+  createdAt   DateTime? @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@index([createdAt])
+  @@map("project_activities")
+}
+

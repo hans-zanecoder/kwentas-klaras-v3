@@ -1,12 +1,15 @@
 import { ProjectRepository } from '../../repositories/project/ProjectRepository';
 import { ProjectSerializer } from '../../serializers/ProjectSerializer';
+import { ProjectActivityService } from './ProjectActivityService';
 import type { Prisma, PrismaClient } from '@prisma/client';
 
 export class ProjectService {
   private repo: ProjectRepository;
+  private activityService: ProjectActivityService;
 
   constructor(prismaClient?: PrismaClient) {
     this.repo = new ProjectRepository(prismaClient);
+    this.activityService = new ProjectActivityService();
   }
 
   async list() {
@@ -44,7 +47,17 @@ export class ProjectService {
               endDate: new Date(data.endDate),
             });
 
-    return ProjectSerializer.detail(project);
+    const serializedProject = ProjectSerializer.detail(project);
+    
+    if (project && project.id) {
+      await this.activityService.create({
+        projectId: project.id,
+        action: 'created',
+        description: `Project "${data.name}" was created`,
+      });
+    }
+
+    return serializedProject;
   }
 
           async update(id: string, data: {
@@ -102,7 +115,29 @@ export class ProjectService {
             }
 
     const project = await this.repo.updateById(id, updateData);
-    return ProjectSerializer.detail(project);
+    const serializedProject = ProjectSerializer.detail(project);
+    
+    if (project && project.id) {
+      const changes: string[] = []
+      if (data.name !== undefined) changes.push('name')
+      if (data.implementingUnit !== undefined) changes.push('implementing unit')
+      if (data.location !== undefined) changes.push('location')
+      if (data.appropriation !== undefined) changes.push('appropriation')
+      if (data.year !== undefined) changes.push('year')
+      if (data.services !== undefined) changes.push('services')
+      if (data.remarks !== undefined) changes.push('remarks')
+      if (data.code !== undefined) changes.push('code')
+      if (data.startDate !== undefined) changes.push('start date')
+      if (data.endDate !== undefined) changes.push('end date')
+      
+      await this.activityService.create({
+        projectId: project.id,
+        action: 'updated',
+        description: `Project "${project.name}" was updated. Changed: ${changes.join(', ')}`,
+      });
+    }
+
+    return serializedProject;
   }
 
   async remove(id: string) {

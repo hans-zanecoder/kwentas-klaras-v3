@@ -27,6 +27,28 @@ export const useProjects = () => {
     loading.value = false
   }
 
+  const fetchProject = async (projectId: string) => {
+    loading.value = true
+    error.value = null
+
+    let project: Project | null = null
+
+    await useErrorHandler(async () => {
+      const response = await $fetch<{ success: boolean; project: Project }>(`/api/projects/${projectId}`)
+      if (response.success) {
+        project = response.project
+      }
+    }, {
+      defaultMessage: 'Failed to fetch project',
+      onError: (err) => {
+        error.value = err.message
+      }
+    })
+
+    loading.value = false
+    return project
+  }
+
   const createProject = async (projectData: Project) => {
     loading.value = true
     error.value = null
@@ -144,6 +166,7 @@ export const useProjects = () => {
     saveError,
     projectStats,
     fetchProjects,
+    fetchProject,
     createProject,
     updateProject,
     deleteProject,

@@ -14,6 +14,8 @@ export class ProjectSerializer {
               services: project.services,
               remarks: project.remarks,
               code: project.code,
+              createdAt: project.createdAt,
+              updatedAt: project.updatedAt,
             };
           }
 
