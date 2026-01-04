@@ -169,6 +169,15 @@
                           Add Obligation
                         </button>
                         <button
+                          @click.stop="openAddDisbursementModal(project)"
+                          class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          Add Disbursement
+                        </button>
+                        <button
                           @click.stop="goToProject(project)"
                           class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
                         >
@@ -207,6 +216,10 @@
       <ErrorMessage :message="obligationSaveError" />
     </div>
 
+    <div v-if="disbursementSaveError" class="fixed top-4 right-4 z-[10000]" style="margin-top: 240px;">
+      <ErrorMessage :message="disbursementSaveError" />
+    </div>
+
     <AddAdditionalBudget
       :is-open="isBudgetModalOpen"
       :project-id="selectedProjectId"
@@ -220,6 +233,13 @@
       @close="closeObligationModal"
       @save="handleSaveObligation"
     />
+
+    <AddDisbursement
+      :is-open="isDisbursementModalOpen"
+      :project-id="selectedProjectId"
+      @close="closeDisbursementModal"
+      @save="handleSaveDisbursement"
+    />
   </div>
 </template>
 
@@ -229,11 +249,13 @@ import SearchInput from '~/components/ui/SearchInput.vue'
 import ErrorMessage from '~/components/ui/ErrorMessage.vue'
 import AddAdditionalBudget from '~/components/projects/AddAdditionalBudget.vue'
 import AddObligation from '~/components/projects/AddObligation.vue'
+import AddDisbursement from '~/components/projects/AddDisbursement.vue'
 import { useProjects } from '~/composables/project/useProjects'
 import { useProjectSearch } from '~/composables/project/useProjectSearch'
 import { useProjectFormatting } from '~/composables/project/useProjectFormatting'
 import { useAdditionalBudgets } from '~/composables/additionalBudget/useAdditionalBudgets'
 import { useObligations } from '~/composables/obligation/useObligations'
+import { useDisbursements } from '~/composables/disbursement/useDisbursements'
 import { PROJECT_FILTER_TYPES, type ProjectFilterType } from '~/constants/project/filterTypes'
 import { getIconBgColor } from '~/constants/ui/statColors'
 import { useUserPermissions } from '~/composables/user/useUserPermissions'
@@ -243,12 +265,14 @@ const filterType = ref<ProjectFilterType>(PROJECT_FILTER_TYPES.ALL)
 const openDropdownId = ref<string | null>(null)
 const isBudgetModalOpen = ref(false)
 const isObligationModalOpen = ref(false)
+const isDisbursementModalOpen = ref(false)
 const selectedProjectId = ref('')
 
 const { projects, saveError, fetchProjects, projectStats } = useProjects()
 const { canManageProjects } = useUserPermissions()
 const { createBudget, saveError: budgetSaveError } = useAdditionalBudgets()
 const { createObligation, saveError: obligationSaveError } = useObligations()
+const { createDisbursement, saveError: disbursementSaveError } = useDisbursements()
 
 const displayStats = computed(() => projectStats.value.slice(0, 3))
 const { filteredProjects: searchFilteredProjects } = useProjectSearch(projects, searchQuery)
@@ -329,6 +353,17 @@ const closeObligationModal = () => {
   selectedProjectId.value = ''
 }
 
+const openAddDisbursementModal = (project: any) => {
+  selectedProjectId.value = project.id
+  isDisbursementModalOpen.value = true
+  openDropdownId.value = null
+}
+
+const closeDisbursementModal = () => {
+  isDisbursementModalOpen.value = false
+  selectedProjectId.value = ''
+}
+
 const handleSaveBudget = async (budgetData: {
   projectId: string
   amount: number
@@ -380,6 +415,32 @@ const handleSaveObligation = async (obligationData: {
   } catch (error) {
     // Error is handled by the composable
     console.error('Failed to save obligation:', error)
+  }
+}
+
+const handleSaveDisbursement = async (disbursementData: {
+  projectId: string
+  amount: number
+  reason: string
+  payee: string
+  approvedBy?: string
+  approvedDate?: string
+}) => {
+  try {
+    await createDisbursement({
+      projectId: disbursementData.projectId,
+      amount: disbursementData.amount,
+      reason: disbursementData.reason,
+      payee: disbursementData.payee,
+      approvedBy: disbursementData.approvedBy,
+      approvedDate: disbursementData.approvedDate ? new Date(disbursementData.approvedDate) : undefined,
+    })
+    closeDisbursementModal()
+    // Refresh projects to update any disbursement-related data
+    await fetchProjects()
+  } catch (error) {
+    // Error is handled by the composable
+    console.error('Failed to save disbursement:', error)
   }
 }
 

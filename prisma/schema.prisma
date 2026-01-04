@@ -136,3 +136,21 @@ model Obligation {
   @@map("obligations")
 }
 
+model Disbursement {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  projectId    String    @map("project_id") @db.ObjectId
+  amount       Float
+  reason       String
+  payee        String
+  approvedBy   String?   @map("approved_by")
+  approvedDate DateTime? @map("approved_date")
+  status       String    @default("pending")
+  createdAt    DateTime? @default(now()) @map("created_at")
+  updatedAt    DateTime? @updatedAt @map("updated_at")
+
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("disbursements")
+}
+

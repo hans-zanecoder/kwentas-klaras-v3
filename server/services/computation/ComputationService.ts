@@ -1,14 +1,17 @@
 import { AdditionalBudgetRepository } from '../../repositories/additionalBudget/AdditionalBudgetRepository';
 import { ObligationRepository } from '../../repositories/obligation/ObligationRepository';
+import { DisbursementRepository } from '../../repositories/disbursement/DisbursementRepository';
 import type { PrismaClient } from '@prisma/client';
 
 export class ComputationService {
   private budgetRepo: AdditionalBudgetRepository;
   private obligationRepo: ObligationRepository;
+  private disbursementRepo: DisbursementRepository;
 
   constructor(prismaClient?: PrismaClient) {
     this.budgetRepo = new AdditionalBudgetRepository(prismaClient);
     this.obligationRepo = new ObligationRepository(prismaClient);
+    this.disbursementRepo = new DisbursementRepository(prismaClient);
   }
 
   /**
@@ -85,6 +88,44 @@ export class ComputationService {
     });
     
     return obligationsMap;
+  }
+
+  /**
+   * Calculate the total disbursements for a single project
+   * @param projectId - The project ID
+   * @returns The total disbursements amount
+   */
+  async calculateTotalDisbursements(projectId: string): Promise<number> {
+    const disbursements = await this.disbursementRepo.findByProjectId(projectId);
+    return disbursements.reduce((sum, disbursement) => sum + disbursement.amount, 0);
+  }
+
+  /**
+   * Calculate the total disbursements for multiple projects
+   * Returns a Map with projectId as key and totalDisbursements as value
+   * @param projectIds - Array of project IDs (optional, if not provided, calculates for all projects)
+   * @returns Map of projectId to totalDisbursements
+   */
+  async calculateTotalDisbursementsMap(projectIds?: string[]): Promise<Map<string, number>> {
+    const disbursementsMap = new Map<string, number>();
+    
+    let allDisbursements: Awaited<ReturnType<typeof this.disbursementRepo.findAll>>;
+    if (projectIds && projectIds.length > 0) {
+      // If specific project IDs are provided, fetch disbursements for those projects only
+      const disbursementsPromises = projectIds.map(id => this.disbursementRepo.findByProjectId(id));
+      const disbursementsArrays = await Promise.all(disbursementsPromises);
+      allDisbursements = disbursementsArrays.flat();
+    } else {
+      // Otherwise, fetch all disbursements
+      allDisbursements = await this.disbursementRepo.findAll();
+    }
+    
+    allDisbursements.forEach(disbursement => {
+      const currentTotal = disbursementsMap.get(disbursement.projectId) ?? 0;
+      disbursementsMap.set(disbursement.projectId, currentTotal + disbursement.amount);
+    });
+    
+    return disbursementsMap;
   }
 }
 

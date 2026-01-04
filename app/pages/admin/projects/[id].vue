@@ -396,39 +396,89 @@
 
             <div v-else-if="activeTab === TAB_IDS.DISBURSEMENTS" class="space-y-6">
               <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-6">Added Disbursements</h3>
-                <div id="accordion-card" data-accordion="collapse">
-                  <Accordion title="Disbursement Entry #1" :is-first="true">
+                <div class="flex items-center justify-between mb-6">
+                  <h3 class="text-lg font-semibold text-gray-900">Added Disbursements</h3>
+                  <div class="flex items-center gap-4">
+                    <div class="text-sm text-gray-600">
+                      Total: <span class="font-semibold text-gray-900">₱{{ formatNumber(totalDisbursements) }}</span>
+                    </div>
+                    <button
+                      v-if="canManageProjects"
+                      @click="isDisbursementModalOpen = true"
+                      class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add Disbursement
+                    </button>
+                  </div>
+                </div>
+                
+                <div v-if="disbursementsLoading" class="text-center py-12">
+                  <div class="inline-block animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
+                  <p class="mt-3 text-sm text-gray-500">Loading disbursements...</p>
+                </div>
+
+                <div v-else-if="disbursementsError" class="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p class="text-sm text-red-800">{{ disbursementsError }}</p>
+                </div>
+
+                <div v-else-if="disbursements.length === 0" class="text-center py-12">
+                  <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <p class="text-sm font-medium text-gray-900 mb-1">No disbursement records</p>
+                  <p class="text-xs text-gray-500">Disbursements will appear here when added</p>
+                </div>
+
+                <div v-else id="accordion-card" data-accordion="collapse" class="space-y-3">
+                  <Accordion
+                    v-for="(disbursement, index) in disbursements"
+                    :key="disbursement.id"
+                    :title="`Disbursement Entry #${index + 1}`"
+                    :is-first="index === 0"
+                  >
                     <div class="space-y-3">
                       <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span class="text-sm font-medium text-gray-500">Name:</span>
-                        <span class="text-sm text-gray-900">Sample Disbursement Entry</span>
-                      </div>
-                      <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span class="text-sm font-medium text-gray-500">Voucher:</span>
-                        <span class="text-sm text-gray-900">N/A</span>
-                      </div>
-                      <div class="flex justify-between items-center py-2 border-b border-gray-100">
                         <span class="text-sm font-medium text-gray-500">Amount:</span>
-                        <span class="text-sm font-semibold text-gray-900">₱0.00</span>
+                        <span class="text-sm font-semibold text-gray-900">₱{{ formatNumber(disbursement.amount) }}</span>
+                      </div>
+                      <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-sm font-medium text-gray-500">Payee:</span>
+                        <span class="text-sm text-gray-900">{{ disbursement.payee }}</span>
+                      </div>
+                      <div class="flex justify-between items-start py-2 border-b border-gray-100">
+                        <span class="text-sm font-medium text-gray-500">Reason:</span>
+                        <span class="text-sm text-gray-900 text-right max-w-xs">{{ disbursement.reason }}</span>
                       </div>
                       <div class="flex justify-between items-center py-2 border-b border-gray-100">
                         <span class="text-sm font-medium text-gray-500">Status:</span>
-                        <span class="text-sm text-gray-900">N/A</span>
+                        <span :class="[
+                          'text-xs font-semibold px-2 py-1 rounded-full',
+                          disbursement.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          disbursement.status === 'denied' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        ]">
+                          {{ disbursement.status?.charAt(0).toUpperCase() + disbursement.status?.slice(1) || 'Pending' }}
+                        </span>
                       </div>
-                      <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span class="text-sm font-medium text-gray-500">Check Date:</span>
-                        <span class="text-sm text-gray-900">N/A</span>
+                      <div v-if="disbursement.approvedBy" class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-sm font-medium text-gray-500">Approved By:</span>
+                        <span class="text-sm text-gray-900">{{ disbursement.approvedBy }}</span>
+                      </div>
+                      <div v-if="disbursement.approvedDate" class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-sm font-medium text-gray-500">Approved Date:</span>
+                        <span class="text-sm text-gray-900">{{ formatDate(disbursement.approvedDate) }}</span>
                       </div>
                       <div class="flex justify-between items-center py-2">
-                        <span class="text-sm font-medium text-gray-500">Date:</span>
-                        <span class="text-sm text-gray-900">N/A</span>
+                        <span class="text-sm font-medium text-gray-500">Date Added:</span>
+                        <span class="text-sm text-gray-900">{{ formatDate(disbursement.createdAt) }}</span>
                       </div>
                     </div>
                   </Accordion>
-                  <div class="text-center py-4 text-sm text-gray-500 mt-4">
-                    No additional disbursement records available
-                  </div>
                 </div>
               </div>
             </div>
@@ -733,15 +783,24 @@
         </div>
       </div>
     </main>
+
+    <AddDisbursement
+      :is-open="isDisbursementModalOpen"
+      :project-id="projectId"
+      @close="closeDisbursementModal"
+      @save="handleSaveDisbursement"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import PieChart from '~/components/ui/PieChart.vue'
 import Accordion from '~/components/ui/Accordion.vue'
+import AddDisbursement from '~/components/projects/AddDisbursement.vue'
 import { useProjectDetail } from '~/composables/project/useProjectDetail'
 import { useAdditionalBudgets } from '~/composables/additionalBudget/useAdditionalBudgets'
 import { useObligations } from '~/composables/obligation/useObligations'
+import { useDisbursements } from '~/composables/disbursement/useDisbursements'
 import { TAB_IDS } from '~/constants/project/detailTabs'
 import { useUserPermissions } from '~/composables/user/useUserPermissions'
 
@@ -819,10 +878,63 @@ const totalObligations = computed(() => {
   return obligations.value.reduce((sum, obligation) => sum + (obligation.amount || 0), 0)
 })
 
+const { fetchDisbursementsByProject, createDisbursement } = useDisbursements()
+const disbursements = ref<any[]>([])
+const disbursementsLoading = ref(false)
+const disbursementsError = ref<string | null>(null)
+const isDisbursementModalOpen = ref(false)
+
+const loadDisbursements = async () => {
+  if (!projectId) return
+  disbursementsLoading.value = true
+  disbursementsError.value = null
+  try {
+    const disbursementsList = await fetchDisbursementsByProject(projectId)
+    disbursements.value = disbursementsList
+  } catch (err: any) {
+    disbursementsError.value = err?.message || 'Failed to load disbursements'
+  } finally {
+    disbursementsLoading.value = false
+  }
+}
+
+const totalDisbursements = computed(() => {
+  return disbursements.value.reduce((sum, disbursement) => sum + (disbursement.amount || 0), 0)
+})
+
+const handleSaveDisbursement = async (disbursementData: {
+  projectId: string
+  amount: number
+  reason: string
+  payee: string
+  approvedBy?: string
+  approvedDate?: string
+}) => {
+  try {
+    await createDisbursement({
+      projectId: disbursementData.projectId,
+      amount: disbursementData.amount,
+      reason: disbursementData.reason,
+      payee: disbursementData.payee,
+      approvedBy: disbursementData.approvedBy,
+      approvedDate: disbursementData.approvedDate ? new Date(disbursementData.approvedDate) : undefined,
+    })
+    await loadDisbursements()
+    isDisbursementModalOpen.value = false
+  } catch (err: any) {
+    console.error('Failed to create disbursement:', err)
+  }
+}
+
+const closeDisbursementModal = () => {
+  isDisbursementModalOpen.value = false
+}
+
 watch(() => project.value?.id, async (newId) => {
   if (newId) {
     await loadBudgets()
     await loadObligations()
+    await loadDisbursements()
   }
 })
 
@@ -833,6 +945,9 @@ watch(() => activeTab.value, (newTab) => {
   if (newTab === TAB_IDS.OBLIGATIONS && project.value?.id) {
     loadObligations()
   }
+  if (newTab === TAB_IDS.DISBURSEMENTS && project.value?.id) {
+    loadDisbursements()
+  }
 })
 
 onMounted(async () => {
@@ -840,6 +955,7 @@ onMounted(async () => {
   if (project.value?.id) {
     await loadBudgets()
     await loadObligations()
+    await loadDisbursements()
   }
 })
 </script>
