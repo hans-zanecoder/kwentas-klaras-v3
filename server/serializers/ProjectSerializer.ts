@@ -8,6 +8,7 @@ export class ProjectSerializer {
               implementingUnit: project.implementingUnit,
               location: project.location,
               appropriation: project.appropriation,
+              totalAddedBudget: project.totalAddedBudget ?? 0,
               startDate: project.startDate,
               endDate: project.endDate,
               year: project.year,

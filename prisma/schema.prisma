@@ -69,6 +69,7 @@ model Project {
   implementingUnit String?   @map("implementing_unit")
   location         String?
   appropriation    Float
+  totalAddedBudget Float     @default(0) @map("total_added_budget")
   startDate        DateTime? @map("start_date")
   endDate          DateTime? @map("end_date")
   year             Int
@@ -99,5 +100,22 @@ model ProjectActivity {
   @@index([projectId])
   @@index([createdAt])
   @@map("project_activities")
+}
+
+model AdditionalBudget {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  projectId    String    @map("project_id") @db.ObjectId
+  amount       Float
+  reason       String
+  approvedBy   String?   @map("approved_by")
+  approvedDate DateTime? @map("approved_date")
+  status       String    @default("pending")
+  createdAt    DateTime? @default(now()) @map("created_at")
+  updatedAt    DateTime? @updatedAt @map("updated_at")
+
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("additional_budgets")
 }
 

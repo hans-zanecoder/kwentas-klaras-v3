@@ -15,11 +15,13 @@ export class ProjectService {
 
   async list() {
     const projects = await this.repo.findAll();
+    // totalAddedBudget is now stored in the database, so we can use it directly
     return ProjectSerializer.list(projects);
   }
 
   async get(id: string) {
     const project = await this.repo.findById(id);
+    // totalAddedBudget is now stored in the database, so we can use it directly
     return ProjectSerializer.detail(project);
   }
 
@@ -35,19 +37,22 @@ export class ProjectService {
             startDate: Date;
             endDate: Date;
           }) {
-            const project = await this.repo.create({
+            const projectData: Prisma.ProjectCreateInput = {
               name: data.name.trim(),
-              implementingUnit: data.implementingUnit,
-              location: data.location,
               appropriation: data.appropriation,
               year: data.year,
               services: data.services,
-              remarks: data.remarks,
-              code: data.code,
               startDate: new Date(data.startDate),
               endDate: new Date(data.endDate),
-            });
+              ...(data.implementingUnit && { implementingUnit: data.implementingUnit }),
+              ...(data.location && { location: data.location }),
+              ...(data.remarks && { remarks: data.remarks }),
+              ...(data.code && { code: data.code }),
+            } as Prisma.ProjectCreateInput;
 
+            const project = await this.repo.create(projectData);
+
+    // New projects have 0 total added budget (set by default in schema)
     const serializedProject = ProjectSerializer.detail(project);
     
     if (project && project.id) {
@@ -89,7 +94,7 @@ export class ProjectService {
             }
 
             if (data.location !== undefined) {
-              updateData.location = data.location;
+              (updateData as any).location = data.location || null;
             }
 
             if (data.appropriation !== undefined) {
@@ -105,11 +110,11 @@ export class ProjectService {
             }
 
             if (data.remarks !== undefined) {
-              updateData.remarks = data.remarks;
+              (updateData as any).remarks = data.remarks || null;
             }
 
             if (data.code !== undefined) {
-              updateData.code = data.code;
+              (updateData as any).code = data.code || null;
             }
 
             if (data.startDate !== undefined) {
@@ -121,6 +126,7 @@ export class ProjectService {
             }
 
     const project = await this.repo.updateById(id, updateData);
+    // totalAddedBudget is now stored in the database
     const serializedProject = ProjectSerializer.detail(project);
     
     if (project && project.id) {

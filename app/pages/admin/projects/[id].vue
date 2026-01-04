@@ -214,7 +214,7 @@
                     </div>
                     <div class="bg-gray-50 rounded-lg p-4">
                       <p class="text-xs font-medium text-gray-500 mb-1">Total Added Budget</p>
-                      <p class="text-lg font-bold text-gray-900">₱0.00</p>
+                      <p class="text-lg font-bold text-gray-900">₱{{ formatNumber(project.totalAddedBudget || 0) }}</p>
                     </div>
                     <div class="bg-gray-50 rounded-lg p-4">
                       <p class="text-xs font-medium text-gray-500 mb-1">Remaining Balance</p>
@@ -246,27 +246,73 @@
 
             <div v-else-if="activeTab === TAB_IDS.BUDGET" class="space-y-6">
               <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-6">Added Budget</h3>
-                <div id="accordion-card" data-accordion="collapse">
-                  <Accordion title="Budget Entry #1" :is-first="true">
+                <div class="flex items-center justify-between mb-6">
+                  <h3 class="text-lg font-semibold text-gray-900">Added Budget</h3>
+                  <div class="text-sm text-gray-600">
+                    Total: <span class="font-semibold text-gray-900">₱{{ formatNumber(project.totalAddedBudget || 0) }}</span>
+                  </div>
+                </div>
+                
+                <div v-if="budgetsLoading" class="text-center py-12">
+                  <div class="inline-block animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
+                  <p class="mt-3 text-sm text-gray-500">Loading budgets...</p>
+                </div>
+
+                <div v-else-if="budgetsError" class="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p class="text-sm text-red-800">{{ budgetsError }}</p>
+                </div>
+
+                <div v-else-if="additionalBudgets.length === 0" class="text-center py-12">
+                  <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p class="text-sm font-medium text-gray-900 mb-1">No additional budget records</p>
+                  <p class="text-xs text-gray-500">Additional budgets will appear here when added</p>
+                </div>
+
+                <div v-else id="accordion-card" data-accordion="collapse" class="space-y-3">
+                  <Accordion
+                    v-for="(budget, index) in additionalBudgets"
+                    :key="budget.id"
+                    :title="`Budget Entry #${index + 1}`"
+                    :is-first="index === 0"
+                  >
                     <div class="space-y-3">
                       <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span class="text-sm font-medium text-gray-500">Name:</span>
-                        <span class="text-sm text-gray-900">Sample Budget Entry</span>
+                        <span class="text-sm font-medium text-gray-500">Amount:</span>
+                        <span class="text-sm font-semibold text-gray-900">₱{{ formatNumber(budget.amount) }}</span>
+                      </div>
+                      <div class="flex justify-between items-start py-2 border-b border-gray-100">
+                        <span class="text-sm font-medium text-gray-500">Reason:</span>
+                        <span class="text-sm text-gray-900 text-right max-w-xs">{{ budget.reason }}</span>
                       </div>
                       <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span class="text-sm font-medium text-gray-500">Amount:</span>
-                        <span class="text-sm font-semibold text-gray-900">₱0.00</span>
+                        <span class="text-sm font-medium text-gray-500">Status:</span>
+                        <span :class="[
+                          'text-xs font-semibold px-2 py-1 rounded-full',
+                          budget.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          budget.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        ]">
+                          {{ budget.status?.charAt(0).toUpperCase() + budget.status?.slice(1) || 'Pending' }}
+                        </span>
+                      </div>
+                      <div v-if="budget.approvedBy" class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-sm font-medium text-gray-500">Approved By:</span>
+                        <span class="text-sm text-gray-900">{{ budget.approvedBy }}</span>
+                      </div>
+                      <div v-if="budget.approvedDate" class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-sm font-medium text-gray-500">Approved Date:</span>
+                        <span class="text-sm text-gray-900">{{ formatDate(budget.approvedDate) }}</span>
                       </div>
                       <div class="flex justify-between items-center py-2">
-                        <span class="text-sm font-medium text-gray-500">Date:</span>
-                        <span class="text-sm text-gray-900">N/A</span>
+                        <span class="text-sm font-medium text-gray-500">Date Added:</span>
+                        <span class="text-sm text-gray-900">{{ formatDate(budget.createdAt) }}</span>
                       </div>
                     </div>
                   </Accordion>
-                  <div class="text-center py-4 text-sm text-gray-500 mt-4">
-                    No additional budget records available
-                  </div>
                 </div>
               </div>
             </div>
@@ -644,6 +690,7 @@
 import PieChart from '~/components/ui/PieChart.vue'
 import Accordion from '~/components/ui/Accordion.vue'
 import { useProjectDetail } from '~/composables/project/useProjectDetail'
+import { useAdditionalBudgets } from '~/composables/additionalBudget/useAdditionalBudgets'
 import { TAB_IDS } from '~/constants/project/detailTabs'
 import { useUserPermissions } from '~/composables/user/useUserPermissions'
 
@@ -679,8 +726,42 @@ const {
   exportLogsToExcel,
 } = useProjectDetail(projectId)
 
+const { fetchBudgetsByProject } = useAdditionalBudgets()
+const additionalBudgets = ref<any[]>([])
+const budgetsLoading = ref(false)
+const budgetsError = ref<string | null>(null)
+
+const loadBudgets = async () => {
+  if (!projectId) return
+  budgetsLoading.value = true
+  budgetsError.value = null
+  try {
+    const budgets = await fetchBudgetsByProject(projectId)
+    additionalBudgets.value = budgets
+  } catch (err: any) {
+    budgetsError.value = err?.message || 'Failed to load budgets'
+  } finally {
+    budgetsLoading.value = false
+  }
+}
+
+watch(() => project.value?.id, async (newId) => {
+  if (newId) {
+    await loadBudgets()
+  }
+})
+
+watch(() => activeTab.value, (newTab) => {
+  if (newTab === TAB_IDS.BUDGET && project.value?.id) {
+    loadBudgets()
+  }
+})
+
 onMounted(async () => {
   await loadProject()
+  if (project.value?.id) {
+    await loadBudgets()
+  }
 })
 </script>
 

@@ -4,6 +4,7 @@ export interface Project {
   implementingUnit: string
   location?: string
   appropriation: number
+  totalAddedBudget?: number
   startDate: string | Date
   endDate: string | Date
   year: number

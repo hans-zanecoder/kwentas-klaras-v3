@@ -121,6 +121,9 @@
                         </span>
                         <span v-if="project.location" class="text-sm text-gray-600">{{ project.location }}</span>
                         <span class="text-sm font-bold text-gray-900">₱{{ formatNumber(project.appropriation) }}</span>
+                        <span v-if="project.totalAddedBudget && project.totalAddedBudget > 0" class="text-sm font-semibold text-green-600">
+                          +₱{{ formatNumber(project.totalAddedBudget) }} added
+                        </span>
                         <span class="text-xs text-gray-500">{{ project.year }}</span>
                         <span v-if="project.startDate || project.endDate" class="text-xs text-gray-500">
                           {{ formatDate(project.startDate) }} - {{ formatDate(project.endDate) }}
@@ -128,10 +131,46 @@
                       </div>
                     </div>
                   </div>
-                  <div class="flex items-center flex-shrink-0">
+                  <div class="flex items-center gap-2 flex-shrink-0">
                     <button @click.stop="goToProject(project)" class="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
                       View Project
                     </button>
+                    <div v-if="project.id" class="relative" ref="dropdownRef">
+                      <button
+                        @click.stop="toggleDropdown(project.id)"
+                        class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                        :class="{ 'bg-gray-100': openDropdownId === project.id }"
+                      >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                        </svg>
+                      </button>
+                      <div
+                        v-if="openDropdownId === project.id"
+                        class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+                        @click.stop
+                      >
+                        <button
+                          @click.stop="openAddBudgetModal(project)"
+                          class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Add Additional Budget
+                        </button>
+                        <button
+                          @click.stop="goToProject(project)"
+                          class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          View Details
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -150,6 +189,17 @@
     <div v-if="saveError" class="fixed top-4 right-4 z-[10000]">
       <ErrorMessage :message="saveError" />
     </div>
+
+    <div v-if="budgetSaveError" class="fixed top-4 right-4 z-[10000]" style="margin-top: 80px;">
+      <ErrorMessage :message="budgetSaveError" />
+    </div>
+
+    <AddAdditionalBudget
+      :is-open="isBudgetModalOpen"
+      :project-id="selectedProjectId"
+      @close="closeBudgetModal"
+      @save="handleSaveBudget"
+    />
   </div>
 </template>
 
@@ -157,18 +207,24 @@
 import StatCard from '~/components/ui/StatCard.vue'
 import SearchInput from '~/components/ui/SearchInput.vue'
 import ErrorMessage from '~/components/ui/ErrorMessage.vue'
+import AddAdditionalBudget from '~/components/projects/AddAdditionalBudget.vue'
 import { useProjects } from '~/composables/project/useProjects'
 import { useProjectSearch } from '~/composables/project/useProjectSearch'
 import { useProjectFormatting } from '~/composables/project/useProjectFormatting'
+import { useAdditionalBudgets } from '~/composables/additionalBudget/useAdditionalBudgets'
 import { PROJECT_FILTER_TYPES, type ProjectFilterType } from '~/constants/project/filterTypes'
 import { getIconBgColor } from '~/constants/ui/statColors'
 import { useUserPermissions } from '~/composables/user/useUserPermissions'
 
 const searchQuery = ref('')
 const filterType = ref<ProjectFilterType>(PROJECT_FILTER_TYPES.ALL)
+const openDropdownId = ref<string | null>(null)
+const isBudgetModalOpen = ref(false)
+const selectedProjectId = ref('')
 
 const { projects, saveError, fetchProjects, projectStats } = useProjects()
 const { canManageProjects } = useUserPermissions()
+const { createBudget, saveError: budgetSaveError } = useAdditionalBudgets()
 
 const displayStats = computed(() => projectStats.value.slice(0, 3))
 const { filteredProjects: searchFilteredProjects } = useProjectSearch(projects, searchQuery)
@@ -209,10 +265,72 @@ onMounted(async () => {
 const router = useRouter()
 
 const goToProject = (project: any) => {
+  closeDropdown(project.id)
   router.push(`/admin/projects/${project.id}`)
 }
 
 const goToAddProject = () => {
   router.push('/admin/projects/add')
 }
+
+const toggleDropdown = (projectId: string) => {
+  openDropdownId.value = openDropdownId.value === projectId ? null : projectId
+}
+
+const closeDropdown = (projectId: string) => {
+  if (openDropdownId.value === projectId) {
+    openDropdownId.value = null
+  }
+}
+
+const openAddBudgetModal = (project: any) => {
+  selectedProjectId.value = project.id
+  isBudgetModalOpen.value = true
+  openDropdownId.value = null
+}
+
+const closeBudgetModal = () => {
+  isBudgetModalOpen.value = false
+  selectedProjectId.value = ''
+}
+
+const handleSaveBudget = async (budgetData: {
+  projectId: string
+  amount: number
+  reason: string
+  approvedBy?: string
+  approvedDate?: string
+  status?: string
+}) => {
+  try {
+    await createBudget({
+      projectId: budgetData.projectId,
+      amount: budgetData.amount,
+      reason: budgetData.reason,
+      approvedBy: budgetData.approvedBy,
+      approvedDate: budgetData.approvedDate ? new Date(budgetData.approvedDate) : undefined,
+      status: budgetData.status as 'pending' | 'approved' | 'rejected' | undefined,
+    })
+    closeBudgetModal()
+    // Refresh projects to update total added budget
+    await fetchProjects()
+  } catch (error) {
+    // Error is handled by the composable
+    console.error('Failed to save budget:', error)
+  }
+}
+
+// Close dropdown when clicking outside
+onMounted(() => {
+  const handleClickOutside = () => {
+    if (openDropdownId.value) {
+      openDropdownId.value = null
+    }
+  }
+  document.addEventListener('click', handleClickOutside)
+  
+  onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside)
+  })
+})
 </script>
