@@ -73,6 +73,10 @@ export const NAVIGATION_ICONS = {
     path: 'M9 5l7 7-7 7',
     viewBox: '0 0 24 24',
   },
+  chevronDown: {
+    path: 'M19 9l-7 7-7-7',
+    viewBox: '0 0 24 24',
+  },
   arrowLeft: {
     path: 'M10 19l-7-7m0 0l7-7m-7 7h18',
     viewBox: '0 0 24 24',

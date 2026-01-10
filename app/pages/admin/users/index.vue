@@ -5,19 +5,19 @@
     <main class="flex-1 flex flex-col overflow-hidden">
       <div :class="[...animations.pageContainerClasses.value]" class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-brand-bg">
         <div class="space-y-6 min-h-full flex flex-col">
-          <div class="flex items-center justify-between">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 class="text-3xl font-bold text-gray-900 mb-1">All Users</h1>
+              <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">All Users</h1>
               <p class="text-sm text-gray-500">Manage and view all system users</p>
             </div>
-            <div class="flex items-center gap-4">
-              <div class="flex-1 max-w-md">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+              <div class="flex-1 sm:max-w-md">
                 <SearchInput
                   v-model="searchQuery"
                   placeholder="Search by name or email..."
                 />
               </div>
-              <button v-if="canManageUsers" @click="goToAddUser" class="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+              <button v-if="canManageUsers" @click="goToAddUser" class="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap">
                 Add User
               </button>
             </div>
