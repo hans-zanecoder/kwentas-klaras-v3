@@ -1,0 +1,33 @@
+---
+alwaysApply: true
+---
+
+# Nuxt 3 Routing Patterns
+
+## CRITICAL: Nuxt 3 Routing Rules
+- **NEVER nest dynamic routes under a dynamic segment** - This creates route conflicts
+- **ALWAYS place dynamic segments `[id]` as the LAST segment** in nested routes
+
+## Correct vs Incorrect Patterns
+
+### ✅ CORRECT Examples:
+- `pages/admin/projects/edit/[id].vue` → `/admin/projects/edit/:id`
+- `pages/admin/projects/add-budget/[id].vue` → `/admin/projects/add-budget/:id`
+- `pages/admin/projects/add-obligation/[id].vue` → `/admin/projects/add-obligation/:id`
+- `pages/admin/projects/add-disbursement/[id].vue` → `/admin/projects/add-disbursement/:id`
+- `pages/admin/projects/[id].vue` → `/admin/projects/:id`
+
+### ❌ INCORRECT Examples (AVOID):
+- `pages/admin/projects/[id]/add-budget.vue` → Creates routing conflicts!
+- `pages/admin/projects/[id]/edit.vue` → Creates routing conflicts!
+- `pages/admin/projects/[id]/add-obligation.vue` → Creates routing conflicts!
+
+## Navigation Guidelines
+- Use `router.push()` with the correct path structure
+- **Navigation paths MUST match file structure exactly**
+- Example: If file is `pages/admin/projects/add-budget/[id].vue`, navigation must be `/admin/projects/add-budget/${id}`
+
+## Route Matching
+- Nuxt matches routes by file structure
+- File structure determines the URL pattern
+- Always verify navigation paths match the file location

@@ -1,0 +1,204 @@
+# Backend (Server-Side) Architecture Rules
+
+## Layered Architecture Pattern
+The server follows a strict layered architecture:
+1. **API Endpoints** → **Services** → **Repositories** → **Database (Prisma)**
+2. **Serializers** transform data between layers
+3. **Types/Interfaces** define contracts between layers
+4. **Constants** hold configuration values
+
+## Repository Pattern
+
+### Interface
+- Location: `server/interfaces/repositories/I[Feature]Repository.ts`
+- Define contract for data access operations
+- Use Prisma types: `Prisma.[Model]CreateInput`, `Prisma.[Model]UpdateInput`
+- Return Prisma model types: `Promise<[Model]>`
+
+### Implementation
+- Location: `server/repositories/[feature]/[Feature]Repository.ts`
+- Class implements interface
+- Private `PrismaClient` client property
+- Constructor accepts optional `PrismaClient` for testing
+- All methods async, return Promises
+- Use `prisma` from `../../lib/prisma` as default
+
+Example:
+```typescript
+// server/interfaces/repositories/IAdditionalBudgetRepository.ts
+export interface IAdditionalBudgetRepository {
+  create(data: Prisma.AdditionalBudgetCreateInput): Promise<AdditionalBudget>;
+  findAll(): Promise<AdditionalBudget[]>;
+  findById(id: string): Promise<AdditionalBudget | null>;
+}
+
+// server/repositories/additionalBudget/AdditionalBudgetRepository.ts
+export class AdditionalBudgetRepository implements IAdditionalBudgetRepository {
+  private client: PrismaClient;
+  constructor(client?: PrismaClient) {
+    this.client = client || prisma;
+  }
+  async create(data: Prisma.AdditionalBudgetCreateInput): Promise<AdditionalBudget> {
+    return this.client.additionalBudget.create({ data });
+  }
+}
+```
+
+## Service Layer
+- Location: `server/services/[feature]/[Feature]Service.ts`
+- Purpose: Business logic layer
+- Dependencies: Repository, Serializer, other services
+- Class-based structure with private repository instance
+- Constructor accepts optional `PrismaClient`
+- Methods use serializer to transform responses
+- Validation logic belongs here
+- Throws errors for business rule violations
+
+Example:
+```typescript
+export class AdditionalBudgetService {
+  private repo: AdditionalBudgetRepository;
+  constructor(prismaClient?: PrismaClient) {
+    this.repo = new AdditionalBudgetRepository(prismaClient);
+  }
+  async create(data: CreateData) {
+    // Validation
+    if (data.amount <= 0) {
+      throw new Error('Amount must be greater than 0');
+    }
+    // Business logic
+    const budget = await this.repo.create({...});
+    // Transform response
+    return AdditionalBudgetSerializer.detail(budget);
+  }
+}
+```
+
+## Serializers
+- Location: `server/serializers/[Feature]Serializer.ts`
+- Purpose: Transform Prisma models to API response format
+- Pattern: Static class methods
+  - `format[Feature](model)` - Format single model
+  - `list(models)` - Format array of models
+  - `detail(model | null)` - Format single model with null handling
+
+Example:
+```typescript
+export class AdditionalBudgetSerializer {
+  static formatAdditionalBudget(budget: AdditionalBudget) {
+    return {
+      id: budget.id,
+      projectId: budget.projectId,
+      // ... other fields
+    };
+  }
+  static list(budgets: AdditionalBudget[]) {
+    return budgets.map(budget => this.formatAdditionalBudget(budget));
+  }
+  static detail(budget: AdditionalBudget | null) {
+    return budget ? this.formatAdditionalBudget(budget) : null;
+  }
+}
+```
+
+## API Endpoints
+- Location: `server/api/[feature]/[method].[http].ts`
+- Examples: `create.post.ts`, `index.get.ts`, `[id].get.ts`, `[id].put.ts`
+- Use `defineEventHandler` from Nuxt server
+- Import service and types
+- Validate request body/params
+- Use `withErrorHandler` utility
+- Return standardized response: `{ success: boolean, [data] }`
+- Use `readBody` for POST/PUT requests
+- Use `event.context.params` for dynamic route params
+
+Example:
+```typescript
+import { AdditionalBudgetService } from '../../services/additionalBudget/AdditionalBudgetService'
+import type { CreateAdditionalBudgetRequest } from '../../types/additionalBudget/createAdditionalBudgetRequest'
+import { withErrorHandler } from '../../utils/errorHandler'
+
+export default defineEventHandler(async (event) => {
+  const body = await readBody<CreateAdditionalBudgetRequest>(event)
+  
+  // Validation
+  if (!body.projectId || !body.amount) {
+    throw createError({
+      statusCode: 400,
+      message: 'Missing required fields'
+    })
+  }
+  
+  return await withErrorHandler(async () => {
+    const service = new AdditionalBudgetService()
+    const result = await service.create(body)
+    return { success: true, budget: result }
+  }, {
+    defaultStatusCode: 500,
+    defaultMessage: 'Failed to create additional budget'
+  })
+})
+```
+
+## Types (Server-Side)
+- Location: `server/types/[feature]/[typeName].ts`
+- Purpose: Request/response type definitions for API
+- Naming: `Create[Feature]Request`, `Update[Feature]Request`, `[Feature]Response`
+- Pattern: Plain interfaces/types, no classes
+
+## Interfaces (Server-Side)
+- Location: `server/interfaces/[category]/I[Name].ts`
+- Purpose: Define contracts for repositories, services, etc.
+- Naming: Start with `I` prefix (e.g., `IAdditionalBudgetRepository`)
+
+## Constants (Server-Side)
+- Location: `server/constants/[feature]/[constantName].ts`
+- Purpose: Configuration values, field names, status values
+- Pattern: Named exports, typed constants
+
+## Server-Side File Naming Conventions
+- Repositories: `[Feature]Repository.ts`
+- Services: `[Feature]Service.ts`
+- Serializers: `[Feature]Serializer.ts`
+- API Endpoints: `[method].[http].ts` (e.g., `create.post.ts`, `[id].get.ts`)
+- Interfaces: `I[Name].ts` (e.g., `IAdditionalBudgetRepository.ts`)
+- Types: `[typeName].ts` (e.g., `createAdditionalBudgetRequest.ts`)
+
+## Server-Side Directory Structure
+```
+server/
+├── api/                    # API endpoints (Nuxt server routes)
+│   └── [feature]/
+│       ├── create.post.ts
+│       ├── index.get.ts
+│       └── [id].get.ts
+├── services/               # Business logic layer
+│   └── [feature]/
+│       └── [Feature]Service.ts
+├── repositories/           # Data access layer
+│   └── [feature]/
+│       └── [Feature]Repository.ts
+├── interfaces/             # Contracts/interfaces
+│   └── repositories/
+│       └── I[Feature]Repository.ts
+├── serializers/            # Data transformation
+│   └── [Feature]Serializer.ts
+├── types/                  # TypeScript types
+│   └── [feature]/
+│       └── [typeName].ts
+├── constants/              # Configuration constants
+│   └── [feature]/
+│       └── [constantName].ts
+├── lib/                    # Libraries (Prisma, Firebase, etc.)
+└── utils/                  # Utility functions
+```
+
+## Server-Side Code Organization Rules
+- **No direct Prisma calls in API endpoints** - Always use services
+- **No business logic in repositories** - Only data access
+- **No database types in API responses** - Always use serializers
+- **Validate input in API endpoints AND services** - Double validation
+- **Use typed error handling** - Use `withErrorHandler` utility
+- **Dependency injection** - Services receive PrismaClient in constructor for testing
+- **Single responsibility** - Each layer has one clear purpose
+- **No `any` types** - Always use proper TypeScript types

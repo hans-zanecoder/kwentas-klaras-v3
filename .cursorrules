@@ -1,0 +1,398 @@
+# Cursor Rules for Kwentas Klaras v3
+
+## Code Organization Principles
+
+### 1. Type Safety
+- **NEVER use `any` type** - Always define explicit types or use `unknown` for error handling
+- Separate all interface/type definitions into dedicated `types/` files
+- Group related types in subdirectories (e.g., `types/project/project.ts`)
+- Use proper TypeScript types for all variables, functions, and component props
+
+### 2. Composables Structure
+- **Separate business logic into composables** - Pages should only handle presentation
+- Create composables for:
+  - Form logic (e.g., `useBudgetForm.ts`)
+  - Data fetching/manipulation (e.g., `useProjects.ts`)
+  - UI logic (e.g., `usePageAnimations.ts`)
+  - Navigation/routing logic
+- Composables should be reusable and testable
+- Place composables in `app/composables/[feature]/` directories
+
+### 3. Component Architecture
+- **No inline CSS or scripts** - Use separate files or composables
+- For components: create composables for logic, separate CSS files for styles
+- Use centralized reusable components (e.g., `Button`, `StatCard`, `CurrencyInput`)
+- Components should be focused and single-purpose
+
+### 4. CSS Organization
+- **Separate CSS into dedicated files** - Never use inline `<style>` blocks in components
+- Place CSS files in `app/assets/css/`
+- Use Tailwind CSS classes for styling
+- Create CSS files for:
+  - Global animations (e.g., `pageAnimations.css`)
+  - Component-specific styles (if needed)
+  - Utility classes
+
+### 5. Animation System
+- **Use centralized animation system** - Always use `usePageAnimations` composable
+- Apply animations consistently across pages:
+  - Page containers: `animations.pageContainerClasses.value`
+  - Cards: `animations.cardClasses.value`
+  - Stat cards: `animations.statCardClasses.value`
+  - Use staggered animations: `animations.getStaggeredDelayClass(index)`
+- Call `animations.markPageLoaded()` in `onMounted`
+
+### 6. Constants and Configuration
+- **Extract constants to dedicated files** - Status values, options, etc.
+- Place constants in `app/constants/[feature]/` directories
+- Use typed constants (e.g., `BudgetStatus`, `ObligationStatus`)
+
+### 7. File Naming Conventions
+- Composables: `use[Feature].ts` (e.g., `useBudgetForm.ts`)
+- Types: `[feature].ts` or `[feature]/[name].ts` (e.g., `project.ts` or `budget/budgetForm.ts`)
+- Constants: `[name].ts` (e.g., `status.ts`, `options.ts`)
+- Components: `PascalCase.vue` (e.g., `StatCard.vue`)
+
+### 7.1. Nuxt 3 Routing Patterns
+- **CRITICAL**: In Nuxt 3, avoid nested dynamic routes under a dynamic segment
+- **WRONG**: `pages/admin/projects/[id]/add-budget.vue` → This creates route conflicts
+- **CORRECT**: `pages/admin/projects/add-budget/[id].vue` → This creates `/admin/projects/add-budget/:id`
+- **Pattern**: Always place dynamic segments `[id]` as the LAST segment in nested routes
+- **Examples**:
+  - ✅ `pages/admin/projects/edit/[id].vue` → `/admin/projects/edit/:id`
+  - ✅ `pages/admin/projects/add-budget/[id].vue` → `/admin/projects/add-budget/:id`
+  - ✅ `pages/admin/projects/[id].vue` → `/admin/projects/:id`
+  - ❌ `pages/admin/projects/[id]/add-budget.vue` → Avoid! Creates routing conflicts
+  - ❌ `pages/admin/projects/[id]/edit.vue` → Avoid! Creates routing conflicts
+- **Navigation**: Use `router.push()` with the correct path structure
+- **Route matching**: Nuxt matches routes by file structure, so structure must match navigation paths exactly
+
+### 8. Import Organization
+- Group imports logically:
+  1. Vue/Nuxt core imports
+  2. Component imports
+  3. Composables imports
+  4. Types/Constants imports
+  5. Utility imports
+- Use top-level imports (avoid `any` types)
+
+### 9. Page Structure
+```vue
+<template>
+  <!-- Presentation only -->
+</template>
+
+<script setup lang="ts">
+// 1. Component imports
+// 2. Composables imports (usePageAnimations, useFeatureForm, etc.)
+// 3. Types/Constants imports
+
+// Initialize composables
+const { form, loading, error, handleSubmit, isFormValid } = useFeatureForm()
+const animations = usePageAnimations()
+
+// Lifecycle hooks
+onMounted(() => {
+  animations.markPageLoaded()
+})
+</script>
+```
+
+### 10. Error Handling
+- Use typed error handling (`err: unknown` instead of `err: any`)
+- Use error handler composables where available
+- Provide meaningful error messages
+
+### 11. Code Quality
+- Follow separation of concerns
+- Keep functions small and focused
+- Avoid over-engineering
+- Write readable, maintainable code
+- Use descriptive variable and function names
+
+### 12. Example: Form Composable Structure
+```typescript
+// types/budget/budgetForm.ts
+export interface BudgetFormData {
+  amount: number
+  reason: string
+  status: BudgetStatus
+  approvedBy?: string
+  approvedDate?: string
+}
+
+// composables/budget/useBudgetForm.ts
+export const useBudgetForm = (projectId: string) => {
+  const form = reactive<BudgetFormData>({...})
+  const loading = ref(false)
+  const error = computed(() => saveError.value || '')
+  const isFormValid = computed(() => {...})
+  const handleSubmit = async () => {...}
+  
+  return { form, loading, error, isFormValid, handleSubmit }
+}
+```
+
+## Server-Side Architecture (Backend)
+
+### 1. Layered Architecture Pattern
+The server follows a strict layered architecture:
+1. **API Endpoints** → **Services** → **Repositories** → **Database (Prisma)**
+2. **Serializers** transform data between layers
+3. **Types/Interfaces** define contracts between layers
+4. **Constants** hold configuration values
+
+### 2. Repository Pattern
+- **Interface**: `server/interfaces/repositories/I[Feature]Repository.ts`
+  - Define contract for data access operations
+  - Use Prisma types: `Prisma.[Model]CreateInput`, `Prisma.[Model]UpdateInput`
+  - Return Prisma model types: `Promise<[Model]>`
+  
+- **Implementation**: `server/repositories/[feature]/[Feature]Repository.ts`
+  - Class implements interface
+  - Private `PrismaClient` client property
+  - Constructor accepts optional `PrismaClient` for testing
+  - All methods async, return Promises
+  - Use `prisma` from `../../lib/prisma` as default
+
+**Example**:
+```typescript
+// server/interfaces/repositories/IAdditionalBudgetRepository.ts
+export interface IAdditionalBudgetRepository {
+  create(data: Prisma.AdditionalBudgetCreateInput): Promise<AdditionalBudget>;
+  findAll(): Promise<AdditionalBudget[]>;
+  findById(id: string): Promise<AdditionalBudget | null>;
+}
+
+// server/repositories/additionalBudget/AdditionalBudgetRepository.ts
+export class AdditionalBudgetRepository implements IAdditionalBudgetRepository {
+  private client: PrismaClient;
+  constructor(client?: PrismaClient) {
+    this.client = client || prisma;
+  }
+  async create(data: Prisma.AdditionalBudgetCreateInput): Promise<AdditionalBudget> {
+    return this.client.additionalBudget.create({ data });
+  }
+}
+```
+
+### 3. Service Layer
+- **Location**: `server/services/[feature]/[Feature]Service.ts`
+- **Purpose**: Business logic layer
+- **Dependencies**: Repository, Serializer, other services
+- **Pattern**:
+  - Class-based structure
+  - Private repository instance
+  - Constructor accepts optional `PrismaClient`
+  - Methods use serializer to transform responses
+  - Validation logic belongs here
+  - Throws errors for business rule violations
+
+**Example**:
+```typescript
+export class AdditionalBudgetService {
+  private repo: AdditionalBudgetRepository;
+  constructor(prismaClient?: PrismaClient) {
+    this.repo = new AdditionalBudgetRepository(prismaClient);
+  }
+  async create(data: CreateData) {
+    // Validation
+    if (data.amount <= 0) {
+      throw new Error('Amount must be greater than 0');
+    }
+    // Business logic
+    const budget = await this.repo.create({...});
+    // Transform response
+    return AdditionalBudgetSerializer.detail(budget);
+  }
+}
+```
+
+### 4. Serializers
+- **Location**: `server/serializers/[Feature]Serializer.ts`
+- **Purpose**: Transform Prisma models to API response format
+- **Pattern**: Static class methods
+  - `format[Feature](model)` - Format single model
+  - `list(models)` - Format array of models
+  - `detail(model | null)` - Format single model with null handling
+
+**Example**:
+```typescript
+export class AdditionalBudgetSerializer {
+  static formatAdditionalBudget(budget: AdditionalBudget) {
+    return {
+      id: budget.id,
+      projectId: budget.projectId,
+      // ... other fields
+    };
+  }
+  static list(budgets: AdditionalBudget[]) {
+    return budgets.map(budget => this.formatAdditionalBudget(budget));
+  }
+  static detail(budget: AdditionalBudget | null) {
+    return budget ? this.formatAdditionalBudget(budget) : null;
+  }
+}
+```
+
+### 5. API Endpoints
+- **Location**: `server/api/[feature]/[method].[http].ts`
+  - Examples: `create.post.ts`, `index.get.ts`, `[id].get.ts`, `[id].put.ts`
+- **Pattern**:
+  - Use `defineEventHandler` from Nuxt server
+  - Import service and types
+  - Validate request body/params
+  - Use `withErrorHandler` utility
+  - Return standardized response: `{ success: boolean, [data] }`
+  - Use `readBody` for POST/PUT requests
+  - Use `event.context.params` for dynamic route params
+
+**Example**:
+```typescript
+import { AdditionalBudgetService } from '../../services/additionalBudget/AdditionalBudgetService'
+import type { CreateAdditionalBudgetRequest } from '../../types/additionalBudget/createAdditionalBudgetRequest'
+import { withErrorHandler } from '../../utils/errorHandler'
+
+export default defineEventHandler(async (event) => {
+  const body = await readBody<CreateAdditionalBudgetRequest>(event)
+  
+  // Validation
+  if (!body.projectId || !body.amount) {
+    throw createError({
+      statusCode: 400,
+      message: 'Missing required fields'
+    })
+  }
+  
+  return await withErrorHandler(async () => {
+    const service = new AdditionalBudgetService()
+    const result = await service.create(body)
+    return { success: true, budget: result }
+  }, {
+    defaultStatusCode: 500,
+    defaultMessage: 'Failed to create additional budget'
+  })
+})
+```
+
+### 6. Types (Server-Side)
+- **Location**: `server/types/[feature]/[typeName].ts`
+- **Purpose**: Request/response type definitions for API
+- **Naming**: `Create[Feature]Request`, `Update[Feature]Request`, `[Feature]Response`
+- **Pattern**: Plain interfaces/types, no classes
+
+**Example**:
+```typescript
+export interface CreateAdditionalBudgetRequest {
+  projectId: string;
+  amount: number;
+  reason: string;
+  approvedBy?: string;
+  approvedDate?: Date;
+  status?: string;
+}
+```
+
+### 7. Interfaces (Server-Side)
+- **Location**: `server/interfaces/[category]/I[Name].ts`
+- **Purpose**: Define contracts for repositories, services, etc.
+- **Naming**: Start with `I` prefix (e.g., `IAdditionalBudgetRepository`)
+
+### 8. Constants (Server-Side)
+- **Location**: `server/constants/[feature]/[constantName].ts`
+- **Purpose**: Configuration values, field names, status values
+- **Pattern**: Named exports, typed constants
+
+**Example**:
+```typescript
+export const PROJECT_FIELD_NAMES = {
+  NAME: 'name',
+  CODE: 'code',
+  // ...
+} as const
+```
+
+### 9. Server-Side File Naming Conventions
+- **Repositories**: `[Feature]Repository.ts`
+- **Services**: `[Feature]Service.ts`
+- **Serializers**: `[Feature]Serializer.ts`
+- **API Endpoints**: `[method].[http].ts` (e.g., `create.post.ts`, `[id].get.ts`)
+- **Interfaces**: `I[Name].ts` (e.g., `IAdditionalBudgetRepository.ts`)
+- **Types**: `[typeName].ts` (e.g., `createAdditionalBudgetRequest.ts`)
+
+### 10. Server-Side Directory Structure
+```
+server/
+├── api/                    # API endpoints (Nuxt server routes)
+│   └── [feature]/
+│       ├── create.post.ts
+│       ├── index.get.ts
+│       └── [id].get.ts
+├── services/               # Business logic layer
+│   └── [feature]/
+│       └── [Feature]Service.ts
+├── repositories/           # Data access layer
+│   └── [feature]/
+│       └── [Feature]Repository.ts
+├── interfaces/             # Contracts/interfaces
+│   └── repositories/
+│       └── I[Feature]Repository.ts
+├── serializers/            # Data transformation
+│   └── [Feature]Serializer.ts
+├── types/                  # TypeScript types
+│   └── [feature]/
+│       └── [typeName].ts
+├── constants/              # Configuration constants
+│   └── [feature]/
+│       └── [constantName].ts
+├── lib/                    # Libraries (Prisma, Firebase, etc.)
+└── utils/                  # Utility functions
+```
+
+### 11. Server-Side Code Organization Rules
+- **No direct Prisma calls in API endpoints** - Always use services
+- **No business logic in repositories** - Only data access
+- **No database types in API responses** - Always use serializers
+- **Validate input in API endpoints AND services** - Double validation
+- **Use typed error handling** - Use `withErrorHandler` utility
+- **Dependency injection** - Services receive PrismaClient in constructor for testing
+- **Single responsibility** - Each layer has one clear purpose
+- **No `any` types** - Always use proper TypeScript types
+
+### 12. Creating New Server-Side Feature Checklist
+- [ ] Add Prisma model to `prisma/schema.prisma`
+- [ ] Create repository interface in `server/interfaces/repositories/I[Feature]Repository.ts`
+- [ ] Create repository implementation in `server/repositories/[feature]/[Feature]Repository.ts`
+- [ ] Create serializer in `server/serializers/[Feature]Serializer.ts`
+- [ ] Create service in `server/services/[feature]/[Feature]Service.ts`
+- [ ] Create types in `server/types/[feature]/[typeName].ts`
+- [ ] Create API endpoints in `server/api/[feature]/[method].[http].ts`
+- [ ] Create constants if needed in `server/constants/[feature]/[constantName].ts`
+- [ ] Run `npx prisma generate` and `npx prisma db push`
+
+## Checklist for New Features
+### Frontend
+- [ ] Types separated into `types/` files
+- [ ] Composables created for business logic
+- [ ] CSS separated into dedicated files (if needed)
+- [ ] No `any` types used
+- [ ] Page animations applied using `usePageAnimations`
+- [ ] Constants extracted to `constants/` files
+- [ ] Reusable components used where possible
+- [ ] **Routing structure follows Nuxt 3 conventions** (dynamic segments as last segment)
+- [ ] Navigation paths match file structure exactly
+- [ ] Clean, readable code following Laravel/TypeScript best practices
+
+### Backend
+- [ ] Repository interface created (`server/interfaces/repositories/I[Feature]Repository.ts`)
+- [ ] Repository implementation created (`server/repositories/[feature]/[Feature]Repository.ts`)
+- [ ] Service created with business logic (`server/services/[feature]/[Feature]Service.ts`)
+- [ ] Serializer created for data transformation (`server/serializers/[Feature]Serializer.ts`)
+- [ ] API endpoints created (`server/api/[feature]/[method].[http].ts`)
+- [ ] Types created for requests/responses (`server/types/[feature]/[typeName].ts`)
+- [ ] Constants created if needed (`server/constants/[feature]/[constantName].ts`)
+- [ ] Error handling implemented with `withErrorHandler`
+- [ ] Input validation in both API and service layers
+- [ ] No direct Prisma calls outside repositories
+- [ ] No `any` types used
+- [ ] Prisma schema updated and migrations run

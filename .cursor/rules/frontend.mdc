@@ -1,0 +1,123 @@
+---
+alwaysApply: true
+---
+
+# Frontend Code Organization Rules
+
+## Type Safety
+- **NEVER use `any` type** - Always define explicit types or use `unknown` for error handling
+- Separate all interface/type definitions into dedicated `types/` files
+- Group related types in subdirectories (e.g., `types/project/project.ts`)
+- Use proper TypeScript types for all variables, functions, and component props
+
+## Composables Structure
+- **Separate business logic into composables** - Pages should only handle presentation
+- Create composables for:
+  - Form logic (e.g., `useBudgetForm.ts`)
+  - Data fetching/manipulation (e.g., `useProjects.ts`)
+  - UI logic (e.g., `usePageAnimations.ts`)
+  - Navigation/routing logic
+- Composables should be reusable and testable
+- Place composables in `app/composables/[feature]/` directories
+
+## Component Architecture
+- **No inline CSS or scripts** - Use separate files or composables
+- For components: create composables for logic, separate CSS files for styles
+- Use centralized reusable components (e.g., `Button`, `StatCard`, `CurrencyInput`)
+- Components should be focused and single-purpose
+
+## CSS Organization
+- **Separate CSS into dedicated files** - Never use inline `<style>` blocks in components
+- Place CSS files in `app/assets/css/`
+- Use Tailwind CSS classes for styling
+- Create CSS files for:
+  - Global animations (e.g., `pageAnimations.css`)
+  - Component-specific styles (if needed)
+  - Utility classes
+
+## Animation System
+- **Use centralized animation system** - Always use `usePageAnimations` composable
+- Apply animations consistently across pages:
+  - Page containers: `animations.pageContainerClasses.value`
+  - Cards: `animations.cardClasses.value`
+  - Stat cards: `animations.statCardClasses.value`
+  - Use staggered animations: `animations.getStaggeredDelayClass(index)`
+- Call `animations.markPageLoaded()` in `onMounted`
+
+## Constants and Configuration
+- **Extract constants to dedicated files** - Status values, options, etc.
+- Place constants in `app/constants/[feature]/` directories
+- Use typed constants (e.g., `BudgetStatus`, `ObligationStatus`)
+
+## File Naming Conventions
+- Composables: `use[Feature].ts` (e.g., `useBudgetForm.ts`)
+- Types: `[feature].ts` or `[feature]/[name].ts` (e.g., `project.ts` or `budget/budgetForm.ts`)
+- Constants: `[name].ts` (e.g., `status.ts`, `options.ts`)
+- Components: `PascalCase.vue` (e.g., `StatCard.vue`)
+
+## Import Organization
+- Group imports logically:
+  1. Vue/Nuxt core imports
+  2. Component imports
+  3. Composables imports
+  4. Types/Constants imports
+  5. Utility imports
+- Use top-level imports (avoid `any` types)
+
+## Page Structure
+Pages should follow this structure:
+```vue
+<template>
+  <!-- Presentation only -->
+</template>
+
+<script setup lang="ts">
+// 1. Component imports
+// 2. Composables imports (usePageAnimations, useFeatureForm, etc.)
+// 3. Types/Constants imports
+
+// Initialize composables
+const { form, loading, error, handleSubmit, isFormValid } = useFeatureForm()
+const animations = usePageAnimations()
+
+// Lifecycle hooks
+onMounted(() => {
+  animations.markPageLoaded()
+})
+</script>
+```
+
+## Error Handling
+- Use typed error handling (`err: unknown` instead of `err: any`)
+- Use error handler composables where available
+- Provide meaningful error messages
+
+## Code Quality
+- Follow separation of concerns
+- Keep functions small and focused
+- Avoid over-engineering
+- Write readable, maintainable code
+- Use descriptive variable and function names
+
+## Form Composable Structure Example
+```typescript
+// types/budget/budgetForm.ts
+export interface BudgetFormData {
+  amount: number
+  reason: string
+  status: BudgetStatus
+  approvedBy?: string
+  approvedDate?: string
+}
+
+// composables/budget/useBudgetForm.ts
+export const useBudgetForm = (projectId: string) => {
+  const form = reactive<BudgetFormData>({...})
+  const loading = ref(false)
+  const error = computed(() => saveError.value || '')
+  const isFormValid = computed(() => {...})
+  const handleSubmit = async () => {...}
+  
+  return { form, loading, error, isFormValid, handleSubmit }
+}
+```

@@ -1,0 +1,28 @@
+# Development Checklists
+
+## Frontend Feature Checklist
+- [ ] Types separated into `types/` files
+- [ ] Composables created for business logic
+- [ ] CSS separated into dedicated files (if needed)
+- [ ] No `any` types used
+- [ ] Page animations applied using `usePageAnimations`
+- [ ] Constants extracted to `constants/` files
+- [ ] Reusable components used where possible
+- [ ] **Routing structure follows Nuxt 3 conventions** (dynamic segments as last segment)
+- [ ] Navigation paths match file structure exactly
+- [ ] Clean, readable code following Laravel/TypeScript best practices
+
+## Backend Feature Checklist
+- [ ] Add Prisma model to `prisma/schema.prisma`
+- [ ] Create repository interface in `server/interfaces/repositories/I[Feature]Repository.ts`
+- [ ] Create repository implementation in `server/repositories/[feature]/[Feature]Repository.ts`
+- [ ] Create serializer in `server/serializers/[Feature]Serializer.ts`
+- [ ] Create service in `server/services/[feature]/[Feature]Service.ts`
+- [ ] Create types in `server/types/[feature]/[typeName].ts`
+- [ ] Create API endpoints in `server/api/[feature]/[method].[http].ts`
+- [ ] Create constants if needed in `server/constants/[feature]/[constantName].ts`
+- [ ] Error handling implemented with `withErrorHandler`
+- [ ] Input validation in both API and service layers
+- [ ] No direct Prisma calls outside repositories
+- [ ] No `any` types used
+- [ ] Prisma schema updated and migrations run (`npx prisma generate` and `npx prisma db push`)
