@@ -3,6 +3,7 @@ import { DisbursementSerializer } from '../../serializers/DisbursementSerializer
 import { ProjectRepository } from '../../repositories/project/ProjectRepository';
 import { ObligationRepository } from '../../repositories/obligation/ObligationRepository';
 import { ComputationService } from '../computation/ComputationService';
+import { ProjectActivityService } from '../project/ProjectActivityService';
 import type { PrismaClient } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 
@@ -11,6 +12,7 @@ export class DisbursementService {
   private projectRepo: ProjectRepository;
   private obligationRepo: ObligationRepository;
   private computationService: ComputationService;
+  private activityService: ProjectActivityService;
   private client: PrismaClient;
 
   constructor(prismaClient?: PrismaClient) {
@@ -19,6 +21,7 @@ export class DisbursementService {
     this.projectRepo = new ProjectRepository(prismaClient);
     this.obligationRepo = new ObligationRepository(prismaClient);
     this.computationService = new ComputationService(prismaClient);
+    this.activityService = new ProjectActivityService();
   }
 
   async list() {
@@ -103,6 +106,13 @@ export class DisbursementService {
       approvedBy: data.approvedBy,
       approvedDate: data.approvedDate ? new Date(data.approvedDate) : null,
       status: data.status || 'pending',
+    });
+
+    const formattedAmount = `₱${data.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    await this.activityService.create({
+      projectId: data.projectId,
+      action: 'disbursement_added',
+      description: `Disbursement of <strong>${formattedAmount}</strong> was added. Payee: <strong>${data.payee.trim()}</strong>. Reason: ${data.reason.trim()}`,
     });
 
     return DisbursementSerializer.detail(disbursement);

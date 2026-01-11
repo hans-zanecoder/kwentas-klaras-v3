@@ -176,15 +176,14 @@
           :message="MODAL_MESSAGES.CREATE_USER.message"
           :confirm-text="MODAL_MESSAGES.CREATE_USER.confirmText"
           :cancel-text="MODAL_MESSAGES.CREATE_USER.cancelText"
-          :loading="loading"
-          :loading-text="MODAL_MESSAGES.CREATE_USER.loadingText"
+          :loading="false"
           :user-details="{
             name: `${form.firstName} ${form.lastName}`,
             role: form.role === UserRole.ADMIN ? 'Admin' : 'Staff',
             email: form.email
           }"
           @confirm="onConfirmCreate"
-          @cancel="closeModal"
+          @cancel="closeConfirmModal"
         />
 
         <LoadingModal
@@ -214,17 +213,22 @@ import ConfirmModal from '~/components/ui/ConfirmModal.vue'
 import SuccessModal from '~/components/ui/SuccessModal.vue'
 import LoadingModal from '~/components/ui/LoadingModal.vue'
 import { MODAL_MESSAGES } from '~/constants/ui/modalMessages'
-import { useConfirmModal } from '~/composables/ui/useConfirmModal'
+import { useFormModals } from '~/composables/ui/useFormModals'
 import { useUserForm } from '~/composables/user/useUserForm'
 import { USER_DEPARTMENTS } from '~/constants/user/userDepartments'
 import { UserRole } from '~/enums/UserRole'
-import { asyncHandler } from '~/utils/asyncHandler'
 
 const { form, loading, error, requiredFieldsCount, remainingRequiredFields, handleSubmit, resetForm } = useUserForm()
 
-const { isOpen: showConfirmationModal, close: closeModal } = useConfirmModal()
-const showLoadingModal = ref(false)
-const showSuccessModal = ref(false)
+const {
+  showConfirmationModal,
+  showLoadingModal,
+  showSuccessModal,
+  openConfirmModal,
+  closeConfirmModal,
+  startSubmission,
+  closeSuccessModal,
+} = useFormModals()
 
 const departments = computed(() => USER_DEPARTMENTS.map((dept, index) => ({ id: index.toString(), name: dept, value: dept })))
 
@@ -235,26 +239,18 @@ const isFormValid = computed(() => {
 
 const handleCreateClick = () => {
   if (isFormValid.value) {
-    showConfirmationModal.value = true
+    openConfirmModal()
   }
 }
 
 const onConfirmCreate = async () => {
-  closeModal()
-  showLoadingModal.value = true
-  
-  const { data, error: submitError } = await asyncHandler(handleSubmit())
-  
-  showLoadingModal.value = false
-  
-  if (!submitError) {
+  await startSubmission(handleSubmit, () => {
     resetForm()
-    showSuccessModal.value = true
-  }
+  })
 }
 
 const handleSuccessClose = () => {
-  showSuccessModal.value = false
+  closeSuccessModal()
   navigateTo('/admin/users')
 }
 </script>

@@ -212,6 +212,18 @@ export class ProjectService {
           changes.push(`${PROJECT_FIELD_NAMES.endDate}: ${formatValue(oldProject.endDate, 'endDate')} → ${formatValue(data.endDate, 'endDate')}`);
         }
       }
+      if (data.latitude !== undefined || data.longitude !== undefined) {
+        const oldLat = (oldProject as any).latitude;
+        const oldLng = (oldProject as any).longitude;
+        const newLat = data.latitude !== undefined ? data.latitude : oldLat;
+        const newLng = data.longitude !== undefined ? data.longitude : oldLng;
+        
+        if (oldLat !== newLat || oldLng !== newLng) {
+          const oldCoords = oldLat !== null && oldLng !== null ? `${oldLat}, ${oldLng}` : 'N/A';
+          const newCoords = newLat !== null && newLng !== null ? `${newLat}, ${newLng}` : 'N/A';
+          changes.push(`Project Map (Coordinates): ${oldCoords} → ${newCoords}`);
+        }
+      }
       
       if (changes.length > 0) {
         const formattedChanges = changes.map(change => {

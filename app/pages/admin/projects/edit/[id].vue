@@ -213,14 +213,30 @@
       :message="MODAL_MESSAGES.UPDATE_PROJECT.message"
       :confirm-text="MODAL_MESSAGES.UPDATE_PROJECT.confirmText"
       :cancel-text="MODAL_MESSAGES.UPDATE_PROJECT.cancelText"
-      :loading="loading"
-      :loading-text="MODAL_MESSAGES.UPDATE_PROJECT.loadingText"
+      :loading="false"
       :project-details="{
         name: form.name,
         appropriation: form.appropriation
       }"
       @confirm="onConfirmUpdate"
-      @cancel="closeModal"
+      @cancel="closeConfirmModal"
+    />
+
+    <LoadingModal
+      :show="showLoadingModal"
+      title="Updating Project"
+      message="Please wait while we update the project..."
+      :duration="2000"
+    />
+
+    <SuccessModal
+      :show="showSuccessModal"
+      title="Project Updated Successfully"
+      :message="`${form.name || 'Project'} has been updated successfully.`"
+      button-text="Close"
+      :auto-close-seconds="3"
+      count-down-message="Closing in"
+      @close="handleSuccessClose"
     />
   </div>
 </template>
@@ -232,8 +248,10 @@ import SelectInput from '~/components/ui/SelectInput.vue'
 import CurrencyInput from '~/components/ui/CurrencyInput.vue'
 import YearPicker from '~/components/ui/YearPicker.vue'
 import ConfirmModal from '~/components/ui/ConfirmModal.vue'
+import SuccessModal from '~/components/ui/SuccessModal.vue'
+import LoadingModal from '~/components/ui/LoadingModal.vue'
 import { MODAL_MESSAGES } from '~/constants/ui/modalMessages'
-import { useConfirmModal } from '~/composables/ui/useConfirmModal'
+import { useFormModals } from '~/composables/ui/useFormModals'
 import { useProjectEditForm } from '~/composables/project/useProjectEditForm'
 import { useServices } from '~/composables/service/useServices'
 import { useDepartments } from '~/composables/department/useDepartments'
@@ -249,7 +267,15 @@ const { departments, fetchDepartments } = useDepartments()
 const { locations, fetchLocations } = useLocations()
 const { remarks, fetchRemarks } = useRemarks()
 
-const { isOpen: showConfirmationModal, close: closeModal } = useConfirmModal()
+const {
+  showConfirmationModal,
+  showLoadingModal,
+  showSuccessModal,
+  openConfirmModal,
+  closeConfirmModal,
+  startSubmission,
+  closeSuccessModal,
+} = useFormModals()
 
 const isFormValid = computed(() => {
   const isValid = remainingRequiredFields.value === 0
@@ -258,13 +284,17 @@ const isFormValid = computed(() => {
 
 const handleUpdateClick = () => {
   if (isFormValid.value) {
-    showConfirmationModal.value = true
+    openConfirmModal()
   }
 }
 
 const onConfirmUpdate = async () => {
-  closeModal()
-  await handleSubmit()
+  await startSubmission(handleSubmit)
+}
+
+const handleSuccessClose = () => {
+  closeSuccessModal()
+  navigateTo(`/admin/projects/${projectId}`)
 }
 
 onMounted(async () => {

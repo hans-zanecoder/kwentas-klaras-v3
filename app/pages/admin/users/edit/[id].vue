@@ -156,15 +156,31 @@
       :message="MODAL_MESSAGES.UPDATE_USER.message"
       :confirm-text="MODAL_MESSAGES.UPDATE_USER.confirmText"
       :cancel-text="MODAL_MESSAGES.UPDATE_USER.cancelText"
-      :loading="loading"
-      :loading-text="MODAL_MESSAGES.UPDATE_USER.loadingText"
+      :loading="false"
       :user-details="{
         name: `${form.firstName} ${form.lastName}`,
         role: form.role === UserRole.ADMIN ? 'Admin' : 'Staff',
         email: form.email
       }"
       @confirm="onConfirmUpdate"
-      @cancel="closeModal"
+      @cancel="closeConfirmModal"
+    />
+
+    <LoadingModal
+      :show="showLoadingModal"
+      title="Updating User Account"
+      message="Please wait while we update the user account..."
+      :duration="2000"
+    />
+
+    <SuccessModal
+      :show="showSuccessModal"
+      title="User Updated Successfully"
+      :message="`${form.firstName} ${form.lastName} has been updated successfully.`"
+      button-text="Close"
+      :auto-close-seconds="3"
+      count-down-message="Closing in"
+      @close="handleSuccessClose"
     />
   </div>
 </template>
@@ -174,21 +190,30 @@ import Button from '~/components/ui/Button.vue'
 import ErrorMessage from '~/components/ui/ErrorMessage.vue'
 import SelectInput from '~/components/ui/SelectInput.vue'
 import ConfirmModal from '~/components/ui/ConfirmModal.vue'
+import SuccessModal from '~/components/ui/SuccessModal.vue'
+import LoadingModal from '~/components/ui/LoadingModal.vue'
 import { MODAL_MESSAGES } from '~/constants/ui/modalMessages'
-import { useConfirmModal } from '~/composables/ui/useConfirmModal'
+import { useFormModals } from '~/composables/ui/useFormModals'
 import { useUsers } from '~/composables/user/useUsers'
 import { useUserEditForm } from '~/composables/user/useUserEditForm'
 import { USER_DEPARTMENTS } from '~/constants/user/userDepartments'
 import { USER_STATUS_OPTIONS } from '~/constants/user/userStatus'
 import { UserRole } from '~/enums/UserRole'
-import { asyncHandler } from '~/utils/asyncHandler'
 
 const route = useRoute()
 const router = useRouter()
 const userId = route.params.id as string
 
 const { users, fetchUsers } = useUsers()
-const { isOpen: showConfirmationModal, close: closeModal } = useConfirmModal()
+const {
+  showConfirmationModal,
+  showLoadingModal,
+  showSuccessModal,
+  openConfirmModal,
+  closeConfirmModal,
+  startSubmission,
+  closeSuccessModal,
+} = useFormModals()
 
 const editingUser = computed(() => {
   return users.value.find(u => u.id === userId) || null
@@ -209,17 +234,17 @@ onMounted(async () => {
 
 const handleUpdateClick = () => {
   if (isFormValid.value) {
-    showConfirmationModal.value = true
+    openConfirmModal()
   }
 }
 
 const onConfirmUpdate = async () => {
-  closeModal()
-  const { error: submitError } = await asyncHandler(handleSubmit())
-  
-  if (!submitError) {
-    router.push('/admin/users')
-  }
+  await startSubmission(handleSubmit)
+}
+
+const handleSuccessClose = () => {
+  closeSuccessModal()
+  router.push('/admin/users')
 }
 </script>
 

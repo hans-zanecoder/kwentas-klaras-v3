@@ -110,7 +110,111 @@ onMounted(() => {
 - Write readable, maintainable code
 - Use descriptive variable and function names
 
-### 12. Example: Form Composable Structure
+### 12. Form Modal Management
+- **MANDATORY**: All forms MUST use the `useFormModals` composable for modal state management
+- **Location**: `app/composables/ui/useFormModals.ts`
+- **Purpose**: Centralized management of confirmation, loading, and success modals
+- **Pattern**: 
+  - Import `useFormModals` from `~/composables/ui/useFormModals`
+  - Use the composable to get modal states and handlers
+  - Never manually create `ref(false)` for modal states
+  - Use `openConfirmModal()` to show confirmation modal
+  - Use `startSubmission()` to handle form submission flow
+  - Use `closeSuccessModal()` when success modal closes
+
+**Example**:
+```typescript
+import { useFormModals } from '~/composables/ui/useFormModals'
+import { useUserForm } from '~/composables/user/useUserForm'
+
+const { form, loading, error, handleSubmit } = useUserForm()
+
+const {
+  showConfirmationModal,
+  showLoadingModal,
+  showSuccessModal,
+  openConfirmModal,
+  closeConfirmModal,
+  startSubmission,
+  closeSuccessModal,
+} = useFormModals()
+
+const handleCreateClick = () => {
+  if (isFormValid.value) {
+    openConfirmModal()
+  }
+}
+
+const onConfirmCreate = async () => {
+  await startSubmission(handleSubmit, () => {
+    resetForm() // Optional callback on success
+  })
+}
+
+const handleSuccessClose = () => {
+  closeSuccessModal()
+  navigateTo('/admin/users')
+}
+```
+
+**Required Components**:
+- `<ConfirmModal>` - Confirmation before submission
+- `<LoadingModal>` - Loading state during submission
+- `<SuccessModal>` - Success feedback after submission
+- `<ErrorMessage>` - Error display (already handled by form composable)
+
+### 13. Project Activity Logging
+- **MANDATORY**: All features in project details (especially forms) MUST automatically log activities to the `project_activities` collection
+- **Location**: Activity logging is handled in services (backend) and can be called from API endpoints
+- **Purpose**: Track all user actions related to projects for audit trails and activity logs
+- **Pattern**: 
+  - **Backend Services**: Activity logging is automatically handled in service methods (e.g., `AdditionalBudgetService.create()`, `ObligationService.create()`, `DisbursementService.create()`)
+  - **Project Updates**: Activity logging for project updates (including geotag/map updates) is handled in `ProjectService.update()`
+  - **Excel Downloads**: Activity logging for Excel downloads is handled via API endpoint `/api/projects/[id]/activities/excel-download.post.ts`
+  - Services use `ProjectActivityService` to create activity logs
+  - Activities are stored with: `projectId`, `action`, `description`, `createdAt`
+
+**When creating new project detail features**:
+- If it's a form that creates/updates project-related data (budget, obligation, disbursement, etc.), ensure the corresponding service method logs the activity
+- If it's a project update (including geotag/map updates), ensure `ProjectService.update()` handles the logging
+- If it's an export/download feature, create an API endpoint to log the activity and call it from the client-side function
+- All activity logs must include meaningful descriptions with relevant details (amounts, payees, reasons, etc.)
+
+**Example Service Activity Logging**:
+```typescript
+// In AdditionalBudgetService.create()
+const budget = await this.repo.create({...});
+
+const formattedAmount = `₱${data.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+await this.activityService.create({
+  projectId: data.projectId,
+  action: 'budget_added',
+  description: `Additional budget of <strong>${formattedAmount}</strong> was added. Reason: ${data.reason.trim()}`,
+});
+
+return AdditionalBudgetSerializer.detail(budget);
+```
+
+**Example Client-Side Activity Logging (for exports)**:
+```typescript
+// In useProjectDetail.ts exportLogsToExcel()
+const exportLogsToExcel = async () => {
+  // ... export logic ...
+  XLSX.writeFile(workbook, fileName)
+
+  // Log the excel download activity
+  try {
+    await $fetch(`/api/projects/${projectId}/activities/excel-download`, {
+      method: 'POST',
+    })
+  } catch (err) {
+    // Silently fail - don't break the export flow if logging fails
+    console.error('Failed to log excel download activity:', err)
+  }
+}
+```
+
+### 14. Example: Form Composable Structure
 ```typescript
 // types/budget/budgetForm.ts
 export interface BudgetFormData {
@@ -359,7 +463,7 @@ server/
 - **Single responsibility** - Each layer has one clear purpose
 - **No `any` types** - Always use proper TypeScript types
 
-### 12. API Documentation (Swagger)
+### 15. API Documentation (Swagger)
 - **MANDATORY**: Whenever you add, update, or modify an API endpoint, you MUST update the Swagger documentation
 - **Location**: Swagger docs are in `server/docs/swagger/` directory
 - **File naming**: `[feature].docs.ts` (e.g., `users.docs.ts`, `projects.docs.ts`)
@@ -404,7 +508,7 @@ server/
  */
 ```
 
-### 13. Creating New Server-Side Feature Checklist
+### 16. Creating New Server-Side Feature Checklist
 - [ ] Add Prisma model to `prisma/schema.prisma`
 - [ ] Create repository interface in `server/interfaces/repositories/I[Feature]Repository.ts`
 - [ ] Create repository implementation in `server/repositories/[feature]/[Feature]Repository.ts`
@@ -428,6 +532,9 @@ server/
 - [ ] Reusable components used where possible
 - [ ] **Routing structure follows Nuxt 3 conventions** (dynamic segments as last segment)
 - [ ] Navigation paths match file structure exactly
+- [ ] **Forms use `useFormModals` composable for modal management** ⚠️ MANDATORY
+- [ ] **All forms include ConfirmModal, LoadingModal, and SuccessModal** ⚠️ MANDATORY
+- [ ] **Project detail features (forms, updates, exports) automatically log activities** ⚠️ MANDATORY
 - [ ] Clean, readable code following Laravel/TypeScript best practices
 
 ### Backend
@@ -438,6 +545,7 @@ server/
 - [ ] API endpoints created (`server/api/[feature]/[method].[http].ts`)
 - [ ] **Swagger documentation created/updated** (`server/docs/swagger/[feature].docs.ts`) ⚠️ MANDATORY
 - [ ] **Swagger docs imported in `server/docs/swagger/index.ts`** (if new feature) ⚠️ MANDATORY
+- [ ] **Project-related services log activities to `project_activities` collection** ⚠️ MANDATORY (for project detail features)
 - [ ] Types created for requests/responses (`server/types/[feature]/[typeName].ts`)
 - [ ] Constants created if needed (`server/constants/[feature]/[constantName].ts`)
 - [ ] Error handling implemented with `withErrorHandler`

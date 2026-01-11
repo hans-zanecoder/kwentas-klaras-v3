@@ -222,14 +222,30 @@
       :message="MODAL_MESSAGES.CREATE_PROJECT.message"
       :confirm-text="MODAL_MESSAGES.CREATE_PROJECT.confirmText"
       :cancel-text="MODAL_MESSAGES.CREATE_PROJECT.cancelText"
-      :loading="loading"
-      :loading-text="MODAL_MESSAGES.CREATE_PROJECT.loadingText"
+      :loading="false"
       :project-details="{
         name: form.name,
         appropriation: form.appropriation
       }"
       @confirm="onConfirmCreate"
-      @cancel="closeModal"
+      @cancel="closeConfirmModal"
+    />
+
+    <LoadingModal
+      :show="showLoadingModal"
+      title="Creating Project"
+      message="Please wait while we create the project..."
+      :duration="2000"
+    />
+
+    <SuccessModal
+      :show="showSuccessModal"
+      title="Project Created Successfully"
+      :message="`${form.name || 'Project'} has been created successfully.`"
+      button-text="Close"
+      :auto-close-seconds="3"
+      count-down-message="Closing in"
+      @close="handleSuccessClose"
     />
   </div>
 </template>
@@ -241,9 +257,11 @@ import SelectInput from '~/components/ui/SelectInput.vue'
 import CurrencyInput from '~/components/ui/CurrencyInput.vue'
 import YearPicker from '~/components/ui/YearPicker.vue'
 import ConfirmModal from '~/components/ui/ConfirmModal.vue'
+import SuccessModal from '~/components/ui/SuccessModal.vue'
+import LoadingModal from '~/components/ui/LoadingModal.vue'
 import GeotagMap from '~/components/shared/GeotagMap.vue'
 import { MODAL_MESSAGES } from '~/constants/ui/modalMessages'
-import { useConfirmModal } from '~/composables/ui/useConfirmModal'
+import { useFormModals } from '~/composables/ui/useFormModals'
 import { useProjectForm } from '~/composables/project/useProjectForm'
 import { useServices } from '~/composables/service/useServices'
 import { useDepartments } from '~/composables/department/useDepartments'
@@ -256,7 +274,15 @@ const { departments, fetchDepartments } = useDepartments()
 const { locations, fetchLocations } = useLocations()
 const { remarks, fetchRemarks } = useRemarks()
 
-const { isOpen: showConfirmationModal, close: closeModal } = useConfirmModal()
+const {
+  showConfirmationModal,
+  showLoadingModal,
+  showSuccessModal,
+  openConfirmModal,
+  closeConfirmModal,
+  startSubmission,
+  closeSuccessModal,
+} = useFormModals()
 
 const isFormValid = computed(() => {
   const isValid = remainingRequiredFields.value === 0
@@ -265,7 +291,7 @@ const isFormValid = computed(() => {
 
 const handleCreateClick = () => {
   if (isFormValid.value) {
-    showConfirmationModal.value = true
+    openConfirmModal()
   }
 }
 
@@ -275,8 +301,12 @@ const handleCoordinatesUpdate = (latitude: number | null, longitude: number | nu
 }
 
 const onConfirmCreate = async () => {
-  closeModal()
-  await handleSubmit()
+  await startSubmission(handleSubmit)
+}
+
+const handleSuccessClose = () => {
+  closeSuccessModal()
+  navigateTo('/admin/projects')
 }
 
 onMounted(async () => {

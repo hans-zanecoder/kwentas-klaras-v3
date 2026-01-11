@@ -1,12 +1,15 @@
 import { AdditionalBudgetRepository } from '../../repositories/additionalBudget/AdditionalBudgetRepository';
 import { AdditionalBudgetSerializer } from '../../serializers/AdditionalBudgetSerializer';
+import { ProjectActivityService } from '../project/ProjectActivityService';
 import type { Prisma, PrismaClient } from '@prisma/client';
 
 export class AdditionalBudgetService {
   private repo: AdditionalBudgetRepository;
+  private activityService: ProjectActivityService;
 
   constructor(prismaClient?: PrismaClient) {
     this.repo = new AdditionalBudgetRepository(prismaClient);
+    this.activityService = new ProjectActivityService();
   }
 
   async list() {
@@ -43,6 +46,13 @@ export class AdditionalBudgetService {
       approvedBy: data.approvedBy,
       approvedDate: data.approvedDate ? new Date(data.approvedDate) : null,
       status: data.status || 'pending',
+    });
+
+    const formattedAmount = `₱${data.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    await this.activityService.create({
+      projectId: data.projectId,
+      action: 'budget_added',
+      description: `Additional budget of <strong>${formattedAmount}</strong> was added. Reason: ${data.reason.trim()}`,
     });
 
     return AdditionalBudgetSerializer.detail(budget);

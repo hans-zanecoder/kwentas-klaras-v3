@@ -10,7 +10,11 @@
       :aria-expanded="isOpen"
       :aria-controls="`accordion-body-${id}`"
     >
-      <span>{{ title }}</span>
+      <span class="flex-1 text-left">
+        <slot name="title">
+          {{ title }}
+        </slot>
+      </span>
       <svg
         class="w-5 h-5 shrink-0 transition-transform"
         :class="{ 'rotate-180': isOpen }"
@@ -39,13 +43,14 @@
 import { ref, computed } from 'vue'
 
 interface AccordionProps {
-  title: string
+  title?: string
   defaultOpen?: boolean
   id?: string
   isFirst?: boolean
 }
 
 const props = withDefaults(defineProps<AccordionProps>(), {
+  title: '',
   defaultOpen: false,
   id: () => Math.random().toString(36).substring(2, 9),
   isFirst: false,

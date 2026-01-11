@@ -253,7 +253,7 @@ export const useProjectDetail = (projectId: string) => {
 
   const { timelineProgress, timelineMilestones, daysRemaining } = useProjectTimeline(project, activities)
 
-  const exportLogsToExcel = () => {
+  const exportLogsToExcel = async () => {
     if (auditLogs.value.length === 0) return
 
     const workbook = XLSX.utils.book_new()
@@ -294,6 +294,16 @@ export const useProjectDetail = (projectId: string) => {
 
     const fileName = `${sanitizedProjectName}_Activity_Log_${new Date().toISOString().split('T')[0]}.xlsx`
     XLSX.writeFile(workbook, fileName)
+
+    // Log the excel download activity
+    try {
+      await $fetch(`/api/projects/${projectId}/activities/excel-download`, {
+        method: 'POST',
+      })
+    } catch (err) {
+      // Silently fail - don't break the export flow if logging fails
+      console.error('Failed to log excel download activity:', err)
+    }
   }
 
   return {

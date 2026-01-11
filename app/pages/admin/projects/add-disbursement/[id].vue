@@ -117,11 +117,12 @@
                 <Button
                   variant="primary"
                   size="md"
-                  type="submit"
+                  type="button"
+                  @click="handleAddClick"
                   :loading="loading"
                   :disabled="loading || !isFormValid"
                 >
-                  <template #loading>Saving...</template>
+                  <template #loading>{{ MODAL_MESSAGES.ADD_DISBURSEMENT.loadingText }}</template>
                   Add Disbursement
                 </Button>
               </div>
@@ -130,6 +131,34 @@
         </div>
       </div>
     </main>
+
+    <ConfirmModal
+      :is-open="showConfirmationModal"
+      :title="MODAL_MESSAGES.ADD_DISBURSEMENT.title"
+      :message="MODAL_MESSAGES.ADD_DISBURSEMENT.message"
+      :confirm-text="MODAL_MESSAGES.ADD_DISBURSEMENT.confirmText"
+      :cancel-text="MODAL_MESSAGES.ADD_DISBURSEMENT.cancelText"
+      :loading="false"
+      @confirm="onConfirmAdd"
+      @cancel="closeConfirmModal"
+    />
+
+    <LoadingModal
+      :show="showLoadingModal"
+      title="Adding Disbursement"
+      message="Please wait while we add the disbursement..."
+      :duration="2000"
+    />
+
+    <SuccessModal
+      :show="showSuccessModal"
+      title="Disbursement Added Successfully"
+      message="The disbursement has been added successfully."
+      button-text="Close"
+      :auto-close-seconds="3"
+      count-down-message="Closing in"
+      @close="handleSuccessClose"
+    />
   </div>
 </template>
 
@@ -137,8 +166,13 @@
 import Button from '~/components/ui/Button.vue'
 import ErrorMessage from '~/components/ui/ErrorMessage.vue'
 import CurrencyInput from '~/components/ui/CurrencyInput.vue'
+import ConfirmModal from '~/components/ui/ConfirmModal.vue'
+import SuccessModal from '~/components/ui/SuccessModal.vue'
+import LoadingModal from '~/components/ui/LoadingModal.vue'
 import { useDisbursementForm } from '~/composables/disbursement/useDisbursementForm'
 import { usePageAnimations } from '~/composables/ui/usePageAnimations'
+import { useFormModals } from '~/composables/ui/useFormModals'
+import { MODAL_MESSAGES } from '~/constants/ui/modalMessages'
 
 const route = useRoute()
 const router = useRouter()
@@ -146,6 +180,30 @@ const projectId = route.params.id as string
 const animations = usePageAnimations()
 
 const { form, loading, error, isFormValid, goBack, handleSubmit } = useDisbursementForm(projectId)
+const {
+  showConfirmationModal,
+  showLoadingModal,
+  showSuccessModal,
+  openConfirmModal,
+  closeConfirmModal,
+  startSubmission,
+  closeSuccessModal,
+} = useFormModals()
+
+const handleAddClick = () => {
+  if (isFormValid.value) {
+    openConfirmModal()
+  }
+}
+
+const onConfirmAdd = async () => {
+  await startSubmission(handleSubmit)
+}
+
+const handleSuccessClose = () => {
+  closeSuccessModal()
+  goBack()
+}
 
 onMounted(() => {
   animations.markPageLoaded()

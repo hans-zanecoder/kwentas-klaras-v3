@@ -124,11 +124,12 @@
                 <Button
                   variant="primary"
                   size="md"
-                  type="submit"
+                  type="button"
+                  @click="handleAddClick"
                   :loading="loading"
                   :disabled="loading || !isFormValid"
                 >
-                  <template #loading>Saving...</template>
+                  <template #loading>{{ MODAL_MESSAGES.ADD_BUDGET.loadingText }}</template>
                   Add Budget
                 </Button>
               </div>
@@ -137,6 +138,34 @@
         </div>
       </div>
     </main>
+
+    <ConfirmModal
+      :is-open="showConfirmationModal"
+      :title="MODAL_MESSAGES.ADD_BUDGET.title"
+      :message="MODAL_MESSAGES.ADD_BUDGET.message"
+      :confirm-text="MODAL_MESSAGES.ADD_BUDGET.confirmText"
+      :cancel-text="MODAL_MESSAGES.ADD_BUDGET.cancelText"
+      :loading="false"
+      @confirm="onConfirmAdd"
+      @cancel="closeConfirmModal"
+    />
+
+    <LoadingModal
+      :show="showLoadingModal"
+      title="Adding Budget"
+      message="Please wait while we add the additional budget..."
+      :duration="2000"
+    />
+
+    <SuccessModal
+      :show="showSuccessModal"
+      title="Budget Added Successfully"
+      message="The additional budget has been added successfully."
+      button-text="Close"
+      :auto-close-seconds="3"
+      count-down-message="Closing in"
+      @close="handleSuccessClose"
+    />
   </div>
 </template>
 
@@ -144,8 +173,13 @@
 import Button from '~/components/ui/Button.vue'
 import ErrorMessage from '~/components/ui/ErrorMessage.vue'
 import CurrencyInput from '~/components/ui/CurrencyInput.vue'
+import ConfirmModal from '~/components/ui/ConfirmModal.vue'
+import SuccessModal from '~/components/ui/SuccessModal.vue'
+import LoadingModal from '~/components/ui/LoadingModal.vue'
 import { useBudgetForm } from '~/composables/budget/useBudgetForm'
 import { usePageAnimations } from '~/composables/ui/usePageAnimations'
+import { useFormModals } from '~/composables/ui/useFormModals'
+import { MODAL_MESSAGES } from '~/constants/ui/modalMessages'
 import { BUDGET_STATUS_OPTIONS } from '~/constants/additionalBudget/status'
 
 const route = useRoute()
@@ -154,6 +188,30 @@ const projectId = route.params.id as string
 const animations = usePageAnimations()
 
 const { form, loading, error, isFormValid, goBack, handleSubmit } = useBudgetForm(projectId)
+const {
+  showConfirmationModal,
+  showLoadingModal,
+  showSuccessModal,
+  openConfirmModal,
+  closeConfirmModal,
+  startSubmission,
+  closeSuccessModal,
+} = useFormModals()
+
+const handleAddClick = () => {
+  if (isFormValid.value) {
+    openConfirmModal()
+  }
+}
+
+const onConfirmAdd = async () => {
+  await startSubmission(handleSubmit)
+}
+
+const handleSuccessClose = () => {
+  closeSuccessModal()
+  goBack()
+}
 
 onMounted(() => {
   animations.markPageLoaded()

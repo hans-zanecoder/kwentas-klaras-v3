@@ -28,20 +28,15 @@ export const useObligationForm = (projectId: string) => {
   const handleSubmit = async () => {
     if (!isFormValid.value) return
 
-    try {
-      await createObligation({
-        projectId,
-        amount: form.amount,
-        payee: form.payee.trim(),
-        reason: form.reason.trim(),
-        status: form.status,
-        approvedBy: form.approvedBy?.trim() || undefined,
-        approvedDate: form.approvedDate ? new Date(form.approvedDate) : undefined,
-      })
-      await router.push(`/admin/projects/${projectId}?tab=obligations`)
-    } catch (err: unknown) {
-      console.error('Failed to create obligation:', err)
-    }
+    await createObligation({
+      projectId,
+      amount: form.amount,
+      payee: form.payee.trim(),
+      reason: form.reason.trim(),
+      status: form.status,
+      approvedBy: form.approvedBy?.trim() || undefined,
+      approvedDate: form.approvedDate ? new Date(form.approvedDate) : undefined,
+    })
   }
 
   return {

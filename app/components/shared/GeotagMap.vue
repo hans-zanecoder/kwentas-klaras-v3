@@ -12,10 +12,28 @@
             </div>
             <div>
               <h3 class="text-xl font-bold text-gray-900">Project Location</h3>
-              <p class="text-xs text-gray-500">Click on the map to set project coordinates</p>
+              <p class="text-xs text-gray-500">{{ inputMode === 'map' ? 'Click on the map to set project coordinates' : 'Enter coordinates manually' }}</p>
             </div>
           </div>
-          <div v-if="hasSaveButton && hasLocation" class="flex items-center gap-2">
+          <div class="flex items-center gap-2">
+            <button
+              @click="toggleInputMode"
+              class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+              :class="inputMode === 'map' 
+                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
+                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'"
+            >
+              <span class="flex items-center gap-2">
+                <svg v-if="inputMode === 'map'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+                {{ inputMode === 'map' ? 'Manual Input' : 'Map View' }}
+              </span>
+            </button>
+            <div v-if="hasSaveButton && hasLocation" class="flex items-center gap-2 ml-2">
             <button
               v-if="showClearButton"
               @click="handleClearLocation"
@@ -32,6 +50,7 @@
               <span v-if="saving">Saving...</span>
               <span v-else>Save Location</span>
             </button>
+            </div>
           </div>
         </div>
       </div>
@@ -39,8 +58,8 @@
         <div v-if="error" class="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
           <p class="text-sm text-red-800">{{ error }}</p>
         </div>
-        <div ref="mapContainer" class="w-full h-[600px] rounded-lg border border-gray-200"></div>
-        <div v-if="currentLatitude !== null && currentLongitude !== null" class="mt-4">
+        
+        <div v-if="currentLatitude !== null && currentLongitude !== null" class="mb-4">
           <div class="bg-white rounded-xl border border-gray-300 shadow-sm overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-300">
               <div class="flex items-center gap-3">
@@ -113,13 +132,92 @@
             </div>
           </div>
         </div>
+        
+        <div v-if="inputMode === 'manual'" class="space-y-4">
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label for="manual-latitude" class="block text-sm font-medium text-gray-700 mb-2">
+                  Latitude <span class="text-xs text-gray-500 font-normal">(Range: -90 to 90)</span>
+                </label>
+                <input
+                  id="manual-latitude"
+                  v-model.number="manualLatitude"
+                  type="number"
+                  step="any"
+                  min="-90"
+                  max="90"
+                  placeholder="e.g., 14.5995"
+                  class="block w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  @blur="handleManualCoordinateChange"
+                />
+                <p v-if="manualLatitudeError" class="mt-1 text-xs text-red-600">{{ manualLatitudeError }}</p>
+              </div>
+              <div>
+                <label for="manual-longitude" class="block text-sm font-medium text-gray-700 mb-2">
+                  Longitude <span class="text-xs text-gray-500 font-normal">(Range: -180 to 180)</span>
+                </label>
+                <input
+                  id="manual-longitude"
+                  v-model.number="manualLongitude"
+                  type="number"
+                  step="any"
+                  min="-180"
+                  max="180"
+                  placeholder="e.g., 120.9842"
+                  class="block w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  @blur="handleManualCoordinateChange"
+                />
+                <p v-if="manualLongitudeError" class="mt-1 text-xs text-red-600">{{ manualLongitudeError }}</p>
+              </div>
+            </div>
+            <button
+              v-if="manualLatitude !== null && manualLongitude !== null && !manualLatitudeError && !manualLongitudeError"
+              @click="applyManualCoordinates"
+              class="mt-4 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Apply Coordinates
+            </button>
+          </div>
+          <div ref="mapContainer" class="w-full h-[400px] rounded-lg border border-gray-200"></div>
+        </div>
+        
+        <div v-else>
+          <div ref="mapContainer" class="w-full h-[600px] rounded-lg border border-gray-200"></div>
+        </div>
       </div>
     </div>
   </div>
+
+  <ConfirmModal
+    :is-open="saveConfirmModal.isOpen.value"
+    :title="MODAL_MESSAGES.SAVE_LOCATION.title"
+    :message="MODAL_MESSAGES.SAVE_LOCATION.message"
+    :confirm-text="MODAL_MESSAGES.SAVE_LOCATION.confirmText"
+    :cancel-text="MODAL_MESSAGES.SAVE_LOCATION.cancelText"
+    :loading="saving"
+    :loading-text="MODAL_MESSAGES.SAVE_LOCATION.loadingText"
+    @confirm="onConfirmSaveLocation"
+    @cancel="saveConfirmModal.close"
+  />
+
+  <ConfirmModal
+    :is-open="clearConfirmModal.isOpen.value"
+    :title="MODAL_MESSAGES.CLEAR_LOCATION.title"
+    :message="MODAL_MESSAGES.CLEAR_LOCATION.message"
+    :confirm-text="MODAL_MESSAGES.CLEAR_LOCATION.confirmText"
+    :cancel-text="MODAL_MESSAGES.CLEAR_LOCATION.cancelText"
+    :loading="saving"
+    :loading-text="MODAL_MESSAGES.CLEAR_LOCATION.loadingText"
+    @confirm="onConfirmClearLocation"
+    @cancel="clearConfirmModal.close"
+  />
 </template>
 
 <script setup lang="ts">
-import { useGeotagMap } from '~/composables/map/useGeotagMap'
+import ConfirmModal from '~/components/ui/ConfirmModal.vue'
+import { MODAL_MESSAGES } from '~/constants/ui/modalMessages'
+import { useGeotagMapComponent } from '~/composables/map/useGeotagMapComponent'
 
 interface Props {
   projectId?: string
@@ -141,184 +239,27 @@ const emit = defineEmits<{
 }>()
 
 const {
+  mapContainer,
+  inputMode,
+  manualLatitude,
+  manualLongitude,
+  manualLatitudeError,
+  manualLongitudeError,
   currentLatitude,
   currentLongitude,
   saving,
   error,
   locationInfo,
   hasLocation,
-  reverseGeocode,
-  geocodeLocation,
-  getDefaultIcon,
-  saveLocation,
-  clearLocation,
-  setCoordinates,
-  getDefaultCenter,
-} = useGeotagMap({
-  projectId: props.projectId,
-  locationName: props.locationName,
-  initialLatitude: props.initialLatitude,
-  initialLongitude: props.initialLongitude,
-})
-
-const mapContainer = ref<HTMLElement | null>(null)
-let map: any = null
-let marker: any = null
-let clickMarker: any = null
-let L: any = null
-
-const initMap = async () => {
-  if (!mapContainer.value || typeof window === 'undefined') return
-
-  try {
-    L = await import('leaflet')
-    await import('leaflet/dist/leaflet.css')
-
-    const defaultCenter = getDefaultCenter()
-    let centerLat = defaultCenter.lat
-    let centerLng = defaultCenter.lng
-    let zoom = defaultCenter.zoom
-
-    if (currentLatitude.value !== null && currentLongitude.value !== null) {
-      centerLat = currentLatitude.value
-      centerLng = currentLongitude.value
-      zoom = 13
-    } else if (props.locationName) {
-      const coords = await geocodeLocation(props.locationName)
-      if (coords) {
-        centerLat = coords.lat
-        centerLng = coords.lng
-        zoom = 13
-      }
-    }
-
-    map = L.default.map(mapContainer.value).setView([centerLat, centerLng], zoom)
-
-    L.default.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 19,
-    }).addTo(map)
-
-    if (currentLatitude.value !== null && currentLongitude.value !== null) {
-      marker = L.default.marker([currentLatitude.value, currentLongitude.value], { icon: getDefaultIcon(L.default) })
-        .addTo(map)
-        .bindPopup('Project Location')
-      await reverseGeocode(currentLatitude.value, currentLongitude.value)
-    }
-
-    map.on('click', async (e: any) => {
-      const { lat, lng } = e.latlng
-      setCoordinates(lat, lng)
-
-      if (clickMarker) {
-        map.removeLayer(clickMarker)
-      }
-
-      clickMarker = L.default.marker([lat, lng], { icon: getDefaultIcon(L.default) })
-        .addTo(map)
-        .bindPopup('Click to set location')
-
-      if (marker) {
-        map.removeLayer(marker)
-        marker = null
-      }
-
-      await reverseGeocode(lat, lng)
-      emit('update:coordinates', lat, lng)
-    })
-  } catch (err) {
-    console.error('Failed to load map:', err)
-    error.value = 'Failed to load map'
-  }
-}
-
-const handleSaveLocation = async () => {
-  if (currentLatitude.value === null || currentLongitude.value === null || !L) return
-
-  const response = await saveLocation(currentLatitude.value, currentLongitude.value)
-
-  if (response.success) {
-    if (clickMarker) {
-      map?.removeLayer(clickMarker)
-      clickMarker = null
-    }
-
-    if (marker) {
-      map?.removeLayer(marker)
-    }
-
-    marker = L.default.marker([currentLatitude.value, currentLongitude.value], { icon: getDefaultIcon(L.default) })
-      .addTo(map!)
-      .bindPopup('Project Location')
-
-    emit('saved', currentLatitude.value, currentLongitude.value)
-  }
-}
-
-const handleClearLocation = async () => {
-  const response = await clearLocation()
-
-  if (response.success) {
-    if (marker) {
-      map?.removeLayer(marker)
-      marker = null
-    }
-
-    if (clickMarker) {
-      map?.removeLayer(clickMarker)
-      clickMarker = null
-    }
-
-    emit('saved', null, null)
-    if (!props.projectId) {
-      emit('update:coordinates', null, null)
-    }
-  }
-}
-
-onMounted(() => {
-  nextTick(() => {
-    initMap()
-  })
-})
-
-onUnmounted(() => {
-  if (map) {
-    map.remove()
-    map = null
-  }
-})
-
-watch(() => props.locationName, async (newLocation) => {
-  if (map && L && newLocation && !currentLatitude.value && !currentLongitude.value) {
-    const coords = await geocodeLocation(newLocation)
-    if (coords) {
-      map.setView([coords.lat, coords.lng], 13)
-    }
-  }
-})
-
-watch(() => [props.initialLatitude, props.initialLongitude], async ([newLat, newLng]) => {
-  if (map && L && newLat !== null && newLat !== undefined && newLng !== null && newLng !== undefined) {
-    setCoordinates(newLat, newLng)
-
-    if (marker) {
-      map.removeLayer(marker)
-    }
-
-    marker = L.default.marker([newLat, newLng], { icon: getDefaultIcon(L.default) })
-      .addTo(map)
-      .bindPopup('Project Location')
-
-    map.setView([newLat, newLng], 13)
-    await reverseGeocode(newLat, newLng)
-  }
-})
-
-watch(() => [currentLatitude.value, currentLongitude.value], ([lat, lng]) => {
-  if (lat !== null && lat !== undefined && lng !== null && lng !== undefined && !props.projectId) {
-    emit('update:coordinates', lat, lng)
-  }
-})
+  saveConfirmModal,
+  clearConfirmModal,
+  toggleInputMode,
+  handleManualCoordinateChange,
+  applyManualCoordinates,
+  handleSaveLocation,
+  onConfirmSaveLocation,
+  handleClearLocation,
+  onConfirmClearLocation,
+} = useGeotagMapComponent(props, emit as (event: string, ...args: any[]) => void)
 </script>
 

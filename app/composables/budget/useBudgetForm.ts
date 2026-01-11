@@ -27,19 +27,14 @@ export const useBudgetForm = (projectId: string) => {
   const handleSubmit = async () => {
     if (!isFormValid.value) return
 
-    try {
-      await createBudget({
-        projectId,
-        amount: form.amount,
-        reason: form.reason.trim(),
-        status: form.status,
-        approvedBy: form.approvedBy?.trim() || undefined,
-        approvedDate: form.approvedDate ? new Date(form.approvedDate) : undefined,
-      })
-      await router.push(`/admin/projects/${projectId}?tab=budget`)
-    } catch (err: unknown) {
-      console.error('Failed to create budget:', err)
-    }
+    await createBudget({
+      projectId,
+      amount: form.amount,
+      reason: form.reason.trim(),
+      status: form.status,
+      approvedBy: form.approvedBy?.trim() || undefined,
+      approvedDate: form.approvedDate ? new Date(form.approvedDate) : undefined,
+    })
   }
 
   return {

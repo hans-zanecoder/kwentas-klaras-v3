@@ -26,19 +26,14 @@ export const useDisbursementForm = (projectId: string) => {
   const handleSubmit = async () => {
     if (!isFormValid.value) return
 
-    try {
-      await createDisbursement({
-        projectId,
-        amount: form.amount,
-        payee: form.payee.trim(),
-        reason: form.reason.trim(),
-        approvedBy: form.approvedBy?.trim() || undefined,
-        approvedDate: form.approvedDate ? new Date(form.approvedDate) : undefined,
-      })
-      await router.push(`/admin/projects/${projectId}?tab=disbursements`)
-    } catch (err: unknown) {
-      console.error('Failed to create disbursement:', err)
-    }
+    await createDisbursement({
+      projectId,
+      amount: form.amount,
+      payee: form.payee.trim(),
+      reason: form.reason.trim(),
+      approvedBy: form.approvedBy?.trim() || undefined,
+      approvedDate: form.approvedDate ? new Date(form.approvedDate) : undefined,
+    })
   }
 
   return {

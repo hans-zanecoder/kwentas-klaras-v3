@@ -290,9 +290,31 @@
                       animations.getStaggeredDelayClass(index),
                     ]"
                     :style="{ animationDelay: `${index * 0.08}s` }"
-                    :title="`Budget Entry #${index + 1}`"
                     :is-first="index === 0"
                   >
+                    <template #title>
+                      <div class="flex items-center gap-3 w-full">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center gap-3 flex-wrap">
+                            <span class="text-lg font-bold text-gray-900">₱{{ formatNumber(budget.amount) }}</span>
+                            <span :class="[
+                              'text-xs font-semibold px-2.5 py-1 rounded-full',
+                              budget.status === 'approved' ? 'bg-green-100 text-green-800' :
+                              budget.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            ]">
+                              {{ budget.status ? budget.status.charAt(0).toUpperCase() + budget.status.slice(1) : 'Pending' }}
+                            </span>
+                          </div>
+                          <p class="text-sm text-gray-600 mt-1 truncate">{{ budget.reason }}</p>
+                        </div>
+                      </div>
+                    </template>
                     <div class="space-y-3">
                       <div class="flex justify-between items-center py-2 border-b border-gray-100">
                         <span class="text-sm font-medium text-gray-500">Amount:</span>
@@ -380,9 +402,36 @@
                       animations.getStaggeredDelayClass(index),
                     ]"
                     :style="{ animationDelay: `${index * 0.08}s` }"
-                    :title="`Obligation Entry #${index + 1}`"
                     :is-first="index === 0"
                   >
+                    <template #title>
+                      <div class="flex items-center gap-3 w-full">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                          <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center gap-3 flex-wrap">
+                            <span class="text-lg font-bold text-gray-900">₱{{ formatNumber(obligation.amount) }}</span>
+                            <span :class="[
+                              'text-xs font-semibold px-2.5 py-1 rounded-full',
+                              obligation.status === 'approved' ? 'bg-green-100 text-green-800' :
+                              obligation.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            ]">
+                              {{ obligation.status ? obligation.status.charAt(0).toUpperCase() + obligation.status.slice(1) : 'Pending' }}
+                            </span>
+                          </div>
+                          <div class="flex items-center gap-2 mt-1">
+                            <span class="text-sm text-gray-500">Payee:</span>
+                            <span class="text-sm font-medium text-gray-900 truncate">{{ obligation.payee }}</span>
+                            <span class="text-gray-400">•</span>
+                            <span class="text-sm text-gray-600 truncate">{{ obligation.reason }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </template>
                     <div class="space-y-3">
                       <div class="flex justify-between items-center py-2 border-b border-gray-100">
                         <span class="text-sm font-medium text-gray-500">Amount:</span>
@@ -474,9 +523,36 @@
                       animations.getStaggeredDelayClass(index),
                     ]"
                     :style="{ animationDelay: `${index * 0.08}s` }"
-                    :title="`Disbursement Entry #${index + 1}`"
                     :is-first="index === 0"
                   >
+                    <template #title>
+                      <div class="flex items-center gap-3 w-full">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center gap-3 flex-wrap">
+                            <span class="text-lg font-bold text-gray-900">₱{{ formatNumber(disbursement.amount) }}</span>
+                            <span :class="[
+                              'text-xs font-semibold px-2.5 py-1 rounded-full',
+                              disbursement.status === 'approved' ? 'bg-green-100 text-green-800' :
+                              disbursement.status === 'denied' ? 'bg-red-100 text-red-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            ]">
+                              {{ disbursement.status ? disbursement.status.charAt(0).toUpperCase() + disbursement.status.slice(1) : 'Pending' }}
+                            </span>
+                          </div>
+                          <div class="flex items-center gap-2 mt-1">
+                            <span class="text-sm text-gray-500">Payee:</span>
+                            <span class="text-sm font-medium text-gray-900 truncate">{{ disbursement.payee }}</span>
+                            <span class="text-gray-400">•</span>
+                            <span class="text-sm text-gray-600 truncate">{{ disbursement.reason }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </template>
                     <div class="space-y-3">
                       <div class="flex justify-between items-center py-2 border-b border-gray-100">
                         <span class="text-sm font-medium text-gray-500">Amount:</span>
@@ -563,19 +639,19 @@
                         </div>
                         
                         <div class="ml-8 flex-1">
-                          <div :class="[...animations.hoverShadowClasses.value]" class="bg-white backdrop-blur-sm rounded-full px-4 py-2.5 border w-full border-gray-100/50 shadow-sm">
+                          <div class="bg-white backdrop-blur-sm rounded-full px-4 py-2.5 border w-full border-gray-100/50 shadow-sm">
                             <div class="flex items-center justify-between gap-3">
                               <div class="flex-1">
-                                <h3 class="text-base font-semibold text-gray-900 group-hover:text-gray-900 transition-colors">{{ milestone.label }}</h3>
+                                <h3 class="text-base font-semibold text-gray-900">{{ milestone.label }}</h3>
                                   <p v-if="milestone.isActivity && milestone.description" class="text-xs text-gray-600 mt-0.5" v-html="milestone.description"></p>
                               </div>
                               <span :class="[
-                                'text-sm font-medium px-3 py-1.5 rounded-full transition-all duration-200 ml-2 w-fit',
+                                'text-sm font-medium px-3 py-1.5 rounded-full ml-2 w-fit',
                                 milestone.isCurrent 
-                                  ? 'bg-blue-500 text-white border border-blue-100 group-hover:bg-blue-100' 
+                                  ? 'bg-blue-500 text-white border border-blue-100' 
                                   : milestone.isPast 
-                                    ? 'bg-emerald-500 text-white border border-emerald-100 group-hover:bg-emerald-100'
-                                    : 'bg-gray-200 text-gray-700 border border-gray-100 group-hover:bg-gray-100'
+                                    ? 'bg-emerald-500 text-white border border-emerald-100'
+                                    : 'bg-gray-200 text-gray-700 border border-gray-100'
                               ]">
                                 {{ formatDate(milestone.date) }}
                               </span>
