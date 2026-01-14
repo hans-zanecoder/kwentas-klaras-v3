@@ -36,6 +36,30 @@ export default defineNuxtConfig({
     }
   },
 
+  nitro: {
+    routeRules: {
+      '/api/**': {
+        headers: {
+          'X-Content-Type-Options': 'nosniff',
+          'X-Frame-Options': 'DENY',
+          'X-XSS-Protection': '1; mode=block',
+          'Referrer-Policy': 'strict-origin-when-cross-origin',
+          'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+        },
+        cors: false,
+      },
+      '/**': {
+        headers: process.env.NODE_ENV === 'production' ? {
+          'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
+        } : {},
+      },
+    },
+    experimental: {
+      wasm: true,
+    },
+    compressPublicAssets: true,
+  },
+
   css: ['~/assets/css/main.css', 'leaflet/dist/leaflet.css'],
 
   app: {

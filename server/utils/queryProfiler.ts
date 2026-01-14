@@ -1,4 +1,6 @@
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client'
+
+import { IS_DEVELOPMENT } from '../constants/environment'
 
 const slowQueryThreshold = 1000;
 
@@ -14,7 +16,7 @@ export function createQueryLogger(target?: string) {
       console.warn(
         `  Params: ${params.substring(0, 200)}${params.length > 200 ? '...' : ''}`
       );
-    } else if (process.env.NODE_ENV === 'development') {
+    } else if (IS_DEVELOPMENT) {
       console.log(
         `[QUERY] ${target ? `[${target}] ` : ''}${duration}ms - ${query.substring(0, 100)}...`
       );
@@ -29,7 +31,7 @@ export function getPrismaLogConfig(_target?: string): Prisma.LogDefinition[] {
   ];
 
   if (
-    process.env.NODE_ENV === 'development' ||
+    IS_DEVELOPMENT ||
     process.env.ENABLE_QUERY_LOG === 'true'
   ) {
     logConfig.push({

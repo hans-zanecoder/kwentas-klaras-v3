@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs'
-import { join } from 'path'
-import { extname } from 'path'
+import { extname, join } from 'path'
+
+import { IS_DEVELOPMENT } from '../../../constants/environment'
 
 const MIME_TYPES: Record<string, string> = {
   '.js': 'application/javascript',
@@ -11,7 +12,7 @@ const MIME_TYPES: Record<string, string> = {
 }
 
 export default defineEventHandler(async (event) => {
-  if (process.env.NODE_ENV !== 'development') {
+  if (!IS_DEVELOPMENT) {
     throw createError({
       statusCode: 404,
       message: 'Not found'

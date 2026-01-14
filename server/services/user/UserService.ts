@@ -43,8 +43,7 @@ export class UserService {
       throw new Error('User with this username already exists');
     }
 
-    // Generate random password
-    const password = generateRandomPassword(12);
+    const password = generateRandomPassword(16);
 
     const firebaseAuth = getFirebaseAuth();
     const firebaseUser = await firebaseAuth.createUser({

@@ -1,7 +1,8 @@
+import { IS_DEVELOPMENT } from '../constants/environment'
 import { swaggerSpec } from '../config/swagger'
 
 export default defineEventHandler(async (event) => {
-  if (process.env.NODE_ENV !== 'development') {
+  if (!IS_DEVELOPMENT) {
     throw createError({
       statusCode: 404,
       message: 'Not found'

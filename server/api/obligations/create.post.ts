@@ -1,11 +1,27 @@
 import { ObligationService } from '../../services/obligation/ObligationService';
-import { withErrorHandler } from '../../utils/errorHandler';
 import type { CreateObligationRequest } from '../../types/obligation/createObligationRequest';
+import { requireAuth } from '../../utils/auth';
+import { requireCSRF } from '../../utils/csrfMiddleware';
+import { sanitizeString, sanitizeNumber } from '../../utils/sanitize';
+import { withErrorHandler } from '../../utils/errorHandler';
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event);
+  await requireCSRF(event);
+  
   const body = await readBody<CreateObligationRequest>(event);
 
-  if (!body.projectId || !body.amount || !body.reason || !body.payee) {
+  const sanitizedBody = {
+    projectId: sanitizeString(body.projectId),
+    amount: sanitizeNumber(body.amount),
+    reason: sanitizeString(body.reason),
+    payee: sanitizeString(body.payee),
+    approvedBy: body.approvedBy ? sanitizeString(body.approvedBy) : undefined,
+    approvedDate: body.approvedDate,
+    status: body.status ? sanitizeString(body.status) : undefined,
+  };
+
+  if (!sanitizedBody.projectId || !sanitizedBody.amount || !sanitizedBody.reason || !sanitizedBody.payee) {
     throw createError({
       statusCode: 400,
       message: 'projectId, amount, reason, and payee are required',
@@ -15,13 +31,13 @@ export default defineEventHandler(async (event) => {
   return await withErrorHandler(async () => {
     const obligationService = new ObligationService();
     const obligation = await obligationService.create({
-      projectId: body.projectId,
-      amount: body.amount,
-      reason: body.reason,
-      payee: body.payee,
-      approvedBy: body.approvedBy,
-      approvedDate: body.approvedDate,
-      status: body.status,
+      projectId: sanitizedBody.projectId,
+      amount: sanitizedBody.amount || 0,
+      reason: sanitizedBody.reason,
+      payee: sanitizedBody.payee,
+      approvedBy: sanitizedBody.approvedBy,
+      approvedDate: sanitizedBody.approvedDate,
+      status: sanitizedBody.status,
     });
 
     return {

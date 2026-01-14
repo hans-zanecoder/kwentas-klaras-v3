@@ -1,9 +1,11 @@
-import { PrismaClient } from '@prisma/client';
-import type { Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
+
+import { IS_PRODUCTION } from '../constants/environment'
 import {
   createQueryLogger,
   getPrismaLogConfig,
-} from '../utils/queryProfiler.js';
+} from '../utils/queryProfiler.js'
 
 declare global {
   var __prisma: PrismaClient | undefined;
@@ -21,7 +23,7 @@ if (logConfig.some((log) => log.level === 'query' && log.emit === 'event')) {
 export const prisma =
   global.__prisma ?? prismaClient;
 
-if (process.env.NODE_ENV !== 'production') {
+if (!IS_PRODUCTION) {
   global.__prisma = prisma;
 }
 

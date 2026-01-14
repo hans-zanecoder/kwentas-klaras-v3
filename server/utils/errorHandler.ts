@@ -1,3 +1,4 @@
+import { IS_DEVELOPMENT } from '../constants/environment'
 import type { ErrorHandlerOptions } from '../types/errorHandler'
 
 export const withErrorHandler = async <T>(
@@ -12,8 +13,8 @@ export const withErrorHandler = async <T>(
 
   try {
     return await handler()
-  } catch (error: any) {
-    if (error.statusCode) {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'statusCode' in error) {
       throw error
     }
 
@@ -21,45 +22,49 @@ export const withErrorHandler = async <T>(
       console.error('Error in handler:', error)
     }
 
-    if (error.code === 'auth/email-already-exists') {
+    const errorObj = error as { code?: string | number; name?: string; message?: string }
+
+    if (errorObj.code === 'auth/email-already-exists') {
       throw createError({
         statusCode: 409,
-        message: 'User with this email already exists in Firebase'
+        message: IS_DEVELOPMENT ? 'User with this email already exists in Firebase' : 'User with this email already exists'
       })
     }
 
-    if (error.code === 'auth/invalid-email') {
+    if (errorObj.code === 'auth/invalid-email') {
       throw createError({
         statusCode: 400,
         message: 'Invalid email address'
       })
     }
 
-    if (error.code === 'auth/weak-password') {
+    if (errorObj.code === 'auth/weak-password') {
       throw createError({
         statusCode: 400,
         message: 'Password is too weak'
       })
     }
 
-    if (error.code === 11000) {
+    if (errorObj.code === 11000) {
       throw createError({
         statusCode: 409,
         message: 'Duplicate entry detected'
       })
     }
 
-    if (error.name === 'CastError') {
+    if (errorObj.name === 'CastError') {
       throw createError({
         statusCode: 400,
         message: 'Invalid ID format'
       })
     }
 
+    const errorMessage = IS_DEVELOPMENT ? (errorObj.message || defaultMessage) : defaultMessage
+
     throw createError({
       statusCode: defaultStatusCode,
-      message: error.message || defaultMessage,
-      data: error.message
+      message: errorMessage,
+      data: IS_DEVELOPMENT ? errorObj.message : undefined
     })
   }
 }
