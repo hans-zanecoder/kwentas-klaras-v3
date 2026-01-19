@@ -1,6 +1,7 @@
 import type { Project } from '~/types/project/project'
 import { calculateProjectStats } from '~/constants/project/projectStats'
 import { useErrorHandler } from '../error/useErrorHandler'
+import { useAuthHeaders } from '../auth/useAuthHeaders'
 
 export const useProjects = () => {
   const projects = ref<Project[]>([])
@@ -54,8 +55,10 @@ export const useProjects = () => {
     error.value = null
 
     await useErrorHandler(async () => {
+      const headers = await useAuthHeaders()
       const response = await $fetch<{ success: boolean; project: Project }>('/api/projects/create', {
         method: 'POST',
+        headers,
         body: projectData,
       })
 

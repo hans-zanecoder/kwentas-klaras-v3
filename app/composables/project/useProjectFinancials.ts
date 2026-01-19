@@ -66,23 +66,60 @@ export const useProjectFinancials = (projectId: string | Ref<string | null>) => 
       .reduce((sum, d) => sum + (d.amount || 0), 0)
   })
 
+  /**
+   * Calculate total budget (appropriation + total added budget)
+   * Mirrors: ComputationService (backend is source of truth)
+   * Formula: appropriation + totalAddedBudget
+   */
+  const getTotalBudget = (project: Project | null): number => {
+    if (!project) return 0
+    return project.appropriation + (project.totalAddedBudget || 0)
+  }
+
+  /**
+   * Calculate remaining balance
+   * Mirrors: ComputationService.calculateRemainingBalance() (backend is source of truth)
+   * Formula: appropriation + totalAddedBudget - totalDisbursements
+   * Equivalent to: totalBudget - totalDisbursements
+   */
   const getRemainingBalance = (project: Project | null): number => {
     if (!project) return 0
-    const totalBudget = project.appropriation + (project.totalAddedBudget || 0)
+    const totalBudget = getTotalBudget(project)
     return totalBudget - totalDisbursements.value
   }
 
+  /**
+   * Calculate remaining obligations
+   * Mirrors: ComputationService.calculateRemainingObligations() (backend is source of truth)
+   * Formula: Math.max(0, totalObligations - approvedDisbursements)
+   */
   const remainingObligations = computed(() => {
     return Math.max(0, totalObligations.value - approvedDisbursements.value)
   })
 
-  const utilizationRate = computed(() => {
-    return (project: Project | null) => {
-      if (!project) return 0
-      const totalBudget = project.appropriation + (project.totalAddedBudget || 0)
-      if (totalBudget === 0) return 0
-      return (approvedDisbursements.value / totalBudget) * 100
+  /**
+   * Calculate utilization rate
+   * Mirrors: ComputationService.calculateUtilizationRate() (backend is source of truth)
+   * Formula: (approvedDisbursements / totalBudget) * 100
+   */
+  const getUtilizationRate = (project: Project | null): number => {
+    if (!project) return 0
+    const totalBudget = getTotalBudget(project)
+    if (totalBudget === 0) return 0
+    return (approvedDisbursements.value / totalBudget) * 100
+  }
+
+  const formatUtilizationRate = (rate: number): string => {
+    if (rate === 0) return '0.00'
+    if (rate < 0.01) {
+      return rate.toFixed(4)
     }
+    return rate.toFixed(2)
+  }
+
+  // Legacy computed for backward compatibility
+  const utilizationRate = computed(() => {
+    return (project: Project | null) => getUtilizationRate(project)
   })
 
   return {
@@ -97,9 +134,12 @@ export const useProjectFinancials = (projectId: string | Ref<string | null>) => 
     totalDisbursements,
     approvedDisbursements,
     pendingDisbursements,
+    getTotalBudget,
     getRemainingBalance,
     remainingObligations,
-    utilizationRate,
+    getUtilizationRate,
+    formatUtilizationRate,
+    utilizationRate, // Legacy - kept for backward compatibility
   }
 }
 

@@ -1,5 +1,6 @@
 import type { IObligation } from '~/types/obligation/obligation'
 import type { ObligationStatus } from '~/constants/obligation/status'
+import { useAuthHeaders } from '../auth/useAuthHeaders'
 
 export const useObligations = () => {
   const obligations = ref<IObligation[]>([])
@@ -56,8 +57,10 @@ export const useObligations = () => {
     saveError.value = null
 
     try {
+      const headers = await useAuthHeaders()
       const response = await $fetch<{ success: boolean; obligation: IObligation }>('/api/obligations/create', {
         method: 'POST',
+        headers,
         body: obligationData,
       })
 

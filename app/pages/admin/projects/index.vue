@@ -189,7 +189,7 @@
                         >
                           <div class="bg-gray-50 rounded-lg p-2.5 sm:p-3">
                             <p class="text-xs font-medium text-gray-500 mb-1">Total Budget</p>
-                            <p class="text-sm font-bold text-gray-900 break-words">₱{{ formatNumber(project.appropriation) }}</p>
+                            <p class="text-sm font-bold text-gray-900 break-words">₱{{ formatNumber(getTotalBudget(project)) }}</p>
                           </div>
                           <div class="bg-gray-50 rounded-lg p-2.5 sm:p-3">
                             <p class="text-xs font-medium text-gray-500 mb-1">Added Budget</p>
@@ -261,7 +261,8 @@ import { useProjects } from '~/composables/project/useProjects'
 import { useProjectSearch } from '~/composables/project/useProjectSearch'
 import { useProjectFormatting } from '~/composables/project/useProjectFormatting'
 import { useProjectListActions } from '~/composables/project/useProjectListActions'
-import { useProjectListFinancials } from '~/composables/project/useProjectListFinancials'
+import { useProjectFinancials } from '~/composables/project/useProjectFinancials'
+import type { Project } from '~/types/project/project'
 import { PROJECT_FILTER_TYPES, type ProjectFilterType } from '~/constants/project/filterTypes'
 import { getIconBgColor } from '~/constants/ui/statColors'
 import { useUserPermissions } from '~/composables/user/useUserPermissions'
@@ -313,15 +314,94 @@ const handleFilterChange = (newFilterType: ProjectFilterType) => {
   }, 300)
 }
 
-const {
-  projectFinancialData,
-  hasFinancialData,
-  loadProjectFinancialData,
-  getProjectFinancialData,
-  getUtilizationRate,
-  getRemainingBalance,
-  formatUtilizationRate,
-} = useProjectListFinancials(projects)
+// Manage multiple project financial instances (lazy-loaded when expanded)
+// All calculations use useProjectFinancials (single source of truth)
+const projectFinancialInstances = ref<Map<string, any>>(new Map())
+const projectFinancialData = ref<Map<string, {
+  totalObligations: number
+  remainingObligations: number
+  totalDisbursements: number
+  approvedDisbursements: number
+}>>(new Map())
+
+const hasFinancialData = (projectId: string) => {
+  return projectFinancialInstances.value.has(projectId)
+}
+
+const loadProjectFinancialData = async (projectId: string) => {
+  if (hasFinancialData(projectId)) return
+  
+  try {
+    const financials = useProjectFinancials(projectId)
+    await financials.loadFinancials()
+    projectFinancialInstances.value.set(projectId, financials)
+    
+    const project = projects.value.find(p => p.id === projectId) || null
+    projectFinancialData.value.set(projectId, {
+      totalObligations: financials.totalObligations.value,
+      remainingObligations: financials.remainingObligations.value,
+      totalDisbursements: financials.totalDisbursements.value,
+      approvedDisbursements: financials.approvedDisbursements.value,
+    })
+  } catch (error) {
+    console.error('Failed to load financial data:', error)
+  }
+}
+
+const getProjectFinancialData = (projectId: string) => {
+  return projectFinancialData.value.get(projectId) || {
+    totalObligations: 0,
+    remainingObligations: 0,
+    totalDisbursements: 0,
+    approvedDisbursements: 0,
+  }
+}
+
+// All calculations use useProjectFinancials (single source of truth)
+const getTotalBudget = (project: Project) => {
+  const financials = projectFinancialInstances.value.get(project.id!)
+  if (financials) {
+    return financials.getTotalBudget(project)
+  }
+  // Use calculation logic from useProjectFinancials (single source of truth)
+  const tempFinancials = useProjectFinancials(project.id!)
+  return tempFinancials.getTotalBudget(project)
+}
+
+const getUtilizationRate = (project: Project) => {
+  const financials = projectFinancialInstances.value.get(project.id!)
+  if (financials) {
+    return financials.getUtilizationRate(project)
+  }
+  // Fallback: Use cached data with calculation logic from useProjectFinancials
+  const financialData = getProjectFinancialData(project.id!)
+  const tempFinancials = useProjectFinancials(project.id!)
+  const totalBudget = tempFinancials.getTotalBudget(project)
+  if (totalBudget === 0) return 0
+  return (financialData.approvedDisbursements / totalBudget) * 100
+}
+
+const getRemainingBalance = (project: Project) => {
+  const financials = projectFinancialInstances.value.get(project.id!)
+  if (financials) {
+    return financials.getRemainingBalance(project)
+  }
+  // Fallback: Use cached data with calculation logic from useProjectFinancials
+  const financialData = getProjectFinancialData(project.id!)
+  const tempFinancials = useProjectFinancials(project.id!)
+  const totalBudget = tempFinancials.getTotalBudget(project)
+  return totalBudget - financialData.totalDisbursements
+}
+
+const formatUtilizationRate = (rate: number) => {
+  const financials = projectFinancialInstances.value.values().next().value
+  if (financials) {
+    return financials.formatUtilizationRate(rate)
+  }
+  // Create temporary instance to use its formatting logic (single source of truth)
+  const tempFinancials = useProjectFinancials('temp')
+  return tempFinancials.formatUtilizationRate(rate)
+}
 
 const {
   expandedFinancialInfoId,

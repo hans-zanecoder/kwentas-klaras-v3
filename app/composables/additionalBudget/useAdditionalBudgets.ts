@@ -1,5 +1,6 @@
 import type { IAdditionalBudget } from '~/types/additionalBudget/additionalBudget'
 import type { BudgetStatus } from '~/constants/additionalBudget/status'
+import { useAuthHeaders } from '../auth/useAuthHeaders'
 
 export const useAdditionalBudgets = () => {
   const budgets = ref<IAdditionalBudget[]>([])
@@ -55,8 +56,10 @@ export const useAdditionalBudgets = () => {
     saveError.value = null
 
     try {
+      const headers = await useAuthHeaders()
       const response = await $fetch<{ success: boolean; budget: IAdditionalBudget }>('/api/additional-budgets/create', {
         method: 'POST',
+        headers,
         body: budgetData,
       })
 

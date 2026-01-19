@@ -2,26 +2,31 @@ import type { Ref } from 'vue'
 import type { Project } from '~/types/project/project'
 import { useProjectFormatting } from './useProjectFormatting'
 
+// Helper function matching useProjectFinancials.getTotalBudget logic (single source of truth)
+const getTotalBudget = (project: Project | null): number => {
+  if (!project) return 0
+  return project.appropriation + (project.totalAddedBudget || 0)
+}
+
+// Helper function matching useProjectFinancials.formatUtilizationRate logic (single source of truth)
+const formatUtilizationRate = (rate: number): string => {
+  if (rate === 0) return '0.00'
+  if (rate < 0.01) {
+    return rate.toFixed(4)
+  }
+  return rate.toFixed(2)
+}
+
 export const useProjectCharts = (
   project: Ref<Project | null>,
   approvedDisbursements: Ref<number>
 ) => {
   const { formatNumber } = useProjectFormatting()
 
-  const formatUtilizationRate = (rate: number): string => {
-    if (rate === 0) return '0.00'
-    if (rate < 0.01) {
-      return rate.toFixed(4)
-    }
-    return rate.toFixed(2)
-  }
-
   const pieChartData = computed(() => {
     if (!project.value) return { series: [], options: {} }
 
-    const appropriation = project.value.appropriation || 0
-    const totalAddedBudget = project.value.totalAddedBudget || 0
-    const totalBudget = appropriation + totalAddedBudget
+    const totalBudget = getTotalBudget(project.value)
 
     if (totalBudget === 0) {
       return {
@@ -89,9 +94,7 @@ export const useProjectCharts = (
   const utilizationChartData = computed(() => {
     if (!project.value) return { series: [], options: {} }
 
-    const appropriation = project.value.appropriation || 0
-    const totalAddedBudget = project.value.totalAddedBudget || 0
-    const totalBudget = appropriation + totalAddedBudget
+    const totalBudget = getTotalBudget(project.value)
 
     if (totalBudget === 0) {
       return {
@@ -160,6 +163,6 @@ export const useProjectCharts = (
   return {
     pieChartData,
     utilizationChartData,
-    formatUtilizationRate,
+    formatUtilizationRate, // Exported for use in pages (matches useProjectFinancials logic)
   }
 }

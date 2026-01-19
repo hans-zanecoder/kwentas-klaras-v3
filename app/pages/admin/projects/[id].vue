@@ -207,7 +207,7 @@
                   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div
                       v-for="(item, index) in [
-                        { label: 'Total Budget', value: `₱${formatNumber(project.appropriation)}`, class: 'text-gray-900' },
+                        { label: 'Total Budget', value: `₱${formatNumber(totalBudget)}`, class: 'text-gray-900' },
                         { label: 'Total Added Budget', value: `₱${formatNumber(project.totalAddedBudget || 0)}`, class: 'text-gray-900' },
                         { label: 'Remaining Balance', value: `₱${formatNumber(remainingBalance)}`, class: remainingBalance >= 0 ? 'text-green-600' : 'text-red-600' },
                         { label: 'Total Obligations', value: `₱${formatNumber(totalObligations)}`, class: 'text-gray-900' },
@@ -986,18 +986,25 @@ const {
   approvedDisbursements,
   pendingDisbursements,
   remainingObligations,
+  getTotalBudget,
   getRemainingBalance,
-  utilizationRate: getUtilizationRate,
+  getUtilizationRate,
+  formatUtilizationRate: formatUtilizationRateFromFinancials,
 } = useProjectFinancials(projectId)
+
+const totalBudget = computed(() => getTotalBudget(project.value))
 
 const remainingBalance = computed(() => getRemainingBalance(project.value))
 
-const utilizationRate = computed(() => getUtilizationRate.value(project.value))
+const utilizationRate = computed(() => getUtilizationRate(project.value))
 
-const { pieChartData, utilizationChartData, formatUtilizationRate } = useProjectCharts(
+const { pieChartData, utilizationChartData } = useProjectCharts(
   project,
   approvedDisbursements
 )
+
+// Use formatUtilizationRate from financials (single source of truth)
+const formatUtilizationRate = formatUtilizationRateFromFinancials
 
 const { handleMapSaved } = useProjectDetailActions(projectId, project, loadProject, loadFinancials)
 

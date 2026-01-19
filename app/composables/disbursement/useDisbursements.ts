@@ -1,5 +1,6 @@
 import type { IDisbursement } from '~/types/disbursement/disbursement'
 import type { DisbursementStatus } from '~/constants/disbursement/status'
+import { useAuthHeaders } from '../auth/useAuthHeaders'
 
 export const useDisbursements = () => {
   const disbursements = ref<IDisbursement[]>([])
@@ -56,8 +57,10 @@ export const useDisbursements = () => {
     saveError.value = null
 
     try {
+      const headers = await useAuthHeaders()
       const response = await $fetch<{ success: boolean; disbursement: IDisbursement }>('/api/disbursements/create', {
         method: 'POST',
+        headers,
         body: disbursementData,
       })
 
@@ -89,8 +92,10 @@ export const useDisbursements = () => {
     saveError.value = null
 
     try {
+      const headers = await useAuthHeaders()
       const response = await $fetch<{ success: boolean; disbursement: IDisbursement }>(`/api/disbursements/${id}`, {
         method: 'PUT',
+        headers,
         body: {
           status,
           approvedBy,
